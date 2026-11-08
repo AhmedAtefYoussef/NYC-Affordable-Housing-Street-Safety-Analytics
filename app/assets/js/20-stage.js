@@ -22,11 +22,12 @@
   var MAX_SCALE = 1.5, REST_FRAME_MS = 33;
   var FONT_SANS = "\"Hanken Grotesk\", system-ui, sans-serif", FONT_DISPLAY = "\"Bodoni Moda\", Georgia, serif";
 
-  function sprite(rgb) {
-    var size = SPARK_PX * 2, canvas = document.createElement("canvas");
+  /* A point of light drawn at the canvas's own resolution, so its core stays sharp on a high-density screen. */
+  function sprite(rgb, scale) {
+    var r = SPARK_PX * (scale || 1), size = Math.ceil(r * 2), canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
     var context = canvas.getContext("2d");
-    var glow = context.createRadialGradient(SPARK_PX, SPARK_PX, 0, SPARK_PX, SPARK_PX, SPARK_PX);
+    var glow = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, r);
     var color = rgb.join(",");
     glow.addColorStop(0, "rgba(" + color + ",0.95)");
     glow.addColorStop(0.14, "rgba(" + color + ",0.6)");
@@ -67,7 +68,7 @@
 
   NYC.onMount("#ov-stage", function (host) {
     var canvas = host.querySelector("canvas"), context = canvas.getContext("2d");
-    var sprites = TONES.map(sprite);
+    var sprites = null;
     var scale = 1, current = null, from = null, to = null, startedAt = 0, seeds = null, visible = true;
     var pointerX = 0, pointerY = 0, driftX = 0, driftY = 0;
     // On a phone (NYC.lite) the canvas draws at one device pixel, skips the light-up intro and draws only while the
@@ -81,6 +82,7 @@
       scale = isLite() ? 1 : Math.min(window.devicePixelRatio || 1, MAX_SCALE);
       Stage.width = host.clientWidth; Stage.height = host.clientHeight;
       canvas.width = Math.round(Stage.width * scale); canvas.height = Math.round(Stage.height * scale);
+      sprites = TONES.map(function (rgb) { return sprite(rgb, scale); });
       if (!Stage.data) { return; }
       var layout = Stage.layouts[Stage.layoutName](Stage);
       current = copy(layout); from = to = null; marks = layout.marks || []; oldMarks = []; marksIn = 1;
@@ -241,7 +243,7 @@
       Stage.data = data;
       var n = data.n, i;
       seeds = { size: new Float32Array(n), rate: new Float32Array(n), phase: new Float32Array(n), delay: new Float32Array(n),
-                arc: new Float32Array(n), start: performance.now() };
+                arc: new Float32Array(n), start: Infinity };
       for (i = 0; i < n; i++) {
         seeds.size[i] = Math.min(10, 4.5 + Math.log10(1 + data.units[i]) * 1.8);
         seeds.rate[i] = 0.0006 + Math.random() * 0.0016;
@@ -250,6 +252,9 @@
       }
       Stage.seeds = seeds;
       resize();
+      // The lights come on once the page has settled after Dash's first render, so the intro plays on a calm thread.
+      var begin = function () { seeds.start = performance.now(); kick(); };
+      if (window.requestIdleCallback) { window.requestIdleCallback(begin, { timeout: 300 }); } else { window.setTimeout(begin, 60); }
       Stage.listeners.forEach(function (listener) { listener(data); });
     }).catch(function (error) {
       host.setAttribute("data-failed", String(error));    // the text beside it stands without the canvas

@@ -17,7 +17,7 @@ import os
 import dash
 from flask import Response, request
 
-from app import data, lazy, page
+from app import data, lazy, page, story_data
 from app.filters import YEAR_END, YEAR_START
 from app.layout import missing_data_layout
 from app.report import GEOJSON_URL
@@ -149,6 +149,11 @@ else:
     page.register(app, STORE)
     lazy.register(app, deferred)
     server.add_url_rule(GEOJSON_URL, "crash_grid", _serve_grid(STORE))
+    # The opening's points are fetched as soon as the page head is read, not once Dash has mounted the stage, so the
+    # city lights up sooner. The stage's own fetch() asks for the same versioned URL and is answered from this one.
+    app.index_string = app.index_string.replace(
+        "{%css%}", f'<link rel="preload" as="fetch" crossorigin="anonymous" href="{story_data.versioned_url(STORE)}">'
+        "\n{%css%}")
     log.info("data loaded: %s crashes, %s housing rows, built %s",
              f"{STORE.meta['rows']['crashes']:,}", f"{STORE.meta['rows']['housing']:,}", STORE.meta["built_at"])
 
