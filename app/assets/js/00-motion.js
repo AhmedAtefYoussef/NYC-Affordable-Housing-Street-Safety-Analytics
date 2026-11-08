@@ -27,10 +27,24 @@
 
   NYC.reducedMotion = function () { return motion.matches; };
   /* Phones, touch screens and small processors get the light version: the same states, no blur filters, no
-     scroll-lit words and a canvas that only draws while it moves. */
-  var lite = window.matchMedia("(max-width: 760px), (pointer: coarse)").matches || (navigator.hardwareConcurrency || 8) <= 4;
+     scroll-lit words and a canvas that only draws while it moves. Two threads or fewer counts as a small processor;
+     four is common on ordinary laptops, and some browsers report a low count on purpose, so four is not a phone. */
+  var phoneLike = window.matchMedia("(max-width: 760px), (pointer: coarse)");
+  function measureLite() { return phoneLike.matches || (navigator.hardwareConcurrency || 8) <= 2; }
+  var lite = measureLite();
   NYC.lite = function () { return lite; };
-  if (lite) { document.documentElement.classList.add("is-lite"); }
+  document.documentElement.classList.toggle("is-lite", lite);
+  /* Decided again whenever the window crosses the phone width or the pointer changes, so a page that loaded in a
+     narrow window gets its lights back when the window widens. Listeners hear "nyc:lite" on window. */
+  function remeasureLite() {
+    var next = measureLite();
+    if (next === lite) { return; }
+    lite = next;
+    document.documentElement.classList.toggle("is-lite", lite);
+    window.dispatchEvent(new CustomEvent("nyc:lite", { detail: { lite: lite } }));
+  }
+  if (phoneLike.addEventListener) { phoneLike.addEventListener("change", remeasureLite); }
+  else if (phoneLike.addListener) { phoneLike.addListener(remeasureLite); }
   NYC.easeOut = function (t) { return 1 - Math.pow(1 - t, 4); };
   NYC.easeInOut = function (t) { return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2; };
 
