@@ -32,20 +32,35 @@
        resize   { seq, width, height, scale, lite, city, layout }               a new size: snap to the arrangement
        go       { seq, city, layout }                                           travel to a new arrangement
        marks    { seq, image } or { seq, pixels }                               the arrangement's words, painted
-       pointer  { x, y }   visible { value }   reduced { value }   start         the intro begins
+       pointer  { x, y }   visible { value }   reduced { value }
+       start    { mode }    the opening begins: "full", "quick" (a reload in the same tab), "lite" (phones) or "none"
+       skip                 the reader is moving on: the opening finishes within 350 ms
+
+     It posts back { type: "formed" } once the city has formed, so the page can bring in the words beside it.
+
+     The opening: every building starts as a faint spark somewhere on the stage, drifting on its own heading; then,
+     each on its own short delay, the sparks swirl into their places in the city (the remaining distance turns about
+     the landing point as it shrinks, as in the Generate sequence), flare as they land, and one band of light crosses
+     the city from south to north. The positions are written into the points themselves, so a chapter that starts
+     mid-flight simply carries the swarm on to its own arrangement.
 
      At rest (nothing travelling, pointer still) the twinkle is drawn at about 30 frames a second. */
   function stageRenderer(scope) {
     "use strict";
     var TONES = [[95, 212, 196], [232, 192, 116], [255, 143, 120], [255, 240, 205]];
-    var FADE_MS = 260, MOVE_MS = 1250, SPREAD_MS = 520, SPARK_PX = 14, INTRO_MS = 2200, ARC_PX = 70, REST_FRAME_MS = 33;
+    var FADE_MS = 260, MOVE_MS = 1250, SPREAD_MS = 520, SPARK_PX = 14, ARC_PX = 70, REST_FRAME_MS = 33;
+    // The opening's timings: when the gathering starts, how long it lasts, and the south-to-north wave (full only).
+    var OPENINGS = { full: { from: 500, gather: 1800, wave: true }, quick: { from: 80, gather: 520, wave: false },
+                     lite: { from: 250, gather: 1350, wave: false } };
+    var FLARE_MS = 520, WAVE_FROM = 2200, WAVE_MS = 800, WAVE_PX = 26, SKIP_MS = 350, FORMED_AT = 0.95;   // the words come in as the last sparks are landing
     var frame = self.requestAnimationFrame ? function (fn) { self.requestAnimationFrame(fn); }
                                            : function (fn) { setTimeout(function () { fn(performance.now()); }, 16); };
     var canvas = null, context = null, sprites = null, scale = 1, width = 0, height = 0, lite = false, reduced = false, visible = true;
     var n = 0, seeds = null, baseTones = null, city = true, seq = 0;
     var current = null, from = null, to = null, startedAt = 0;
     var pointerX = 0, pointerY = 0, driftX = 0, driftY = 0;
-    var intro = false, introStart = Infinity, running = false, lastDrawn = 0;
+    var running = false, lastDrawn = 0, waiting = true, opening = null, home = null, homeTop = 0, homeBottom = 0;
+    var spark = null, grow = null, lit = null;
     var markImage = null, oldImage = null, marksIn = 1;
 
     function easeInOut(t) { return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2; }
@@ -84,11 +99,46 @@
       context.globalAlpha = 1;
     }
 
+    /* One frame of the opening: writes each point's place, light and size into current, grow and lit. */
+    function open(now) {
+      var o = opening, plan = OPENINGS[o.mode], elapsed = now - o.start, i;
+      if (o.skipAt) { elapsed = o.skipFrom + (now - o.skipAt) * o.rush; }
+      var settle = plan.from + plan.gather + FLARE_MS;
+      var end = plan.wave && !o.skipAt ? Math.max(settle, WAVE_FROM + WAVE_MS) : settle;
+      var fadeIn = Math.min(1, elapsed / 600);
+      var wave = plan.wave && !o.skipAt ? (elapsed - WAVE_FROM) / WAVE_MS : -1, scanY = homeBottom - wave * (homeBottom - homeTop);
+      var g = (elapsed - plan.from) / plan.gather;
+      for (i = 0; i < n; i++) {
+        var hx = home.x[i], hy = home.y[i], d = spark.delay[i];
+        var t = easeInOut(Math.max(0, Math.min(1, (g - d) / (1 - d * 0.6))));
+        var sx = spark.x[i] * width + spark.vx[i] * elapsed / 1000, sy = spark.y[i] * height + spark.vy[i] * elapsed / 1000;
+        var swirl = (1 - t) * spark.spin[i] * 1.8, dx = sx - hx, dy = sy - hy, cos = Math.cos(swirl), sin = Math.sin(swirl);
+        current.x[i] = hx + (dx * cos - dy * sin) * (1 - t);
+        current.y[i] = hy + (dx * sin + dy * cos) * (1 - t);
+        current.alpha[i] = home.alpha[i] * Math.min(1, fadeIn * 0.6 + 0.4 * t);
+        // As it lands, a point flares and settles; the wave lifts the points it passes.
+        var since = elapsed - (plan.from + plan.gather * (d + 1 - d * 0.6));
+        var flare = since >= 0 && since < FLARE_MS ? 1 - since / FLARE_MS : 0;
+        var light = wave > 0 && wave < 1 ? Math.max(0, 1 - Math.abs(hy - scanY) / WAVE_PX) : 0;
+        grow[i] = 1 + flare * 1.6 + light * 1.2; lit[i] = Math.max(flare * 0.6, light);
+      }
+      if (!o.formed && g >= FORMED_AT) { o.formed = true; scope.postMessage({ type: "formed" }); }
+      if (elapsed >= end) { finishOpening(); }
+    }
+    function finishOpening() {
+      if (!opening) { return; }
+      if (!opening.formed) { scope.postMessage({ type: "formed" }); }
+      opening = null;
+      if (home && !to) { current.x.set(home.x); current.y.set(home.y); current.alpha.set(home.alpha); }
+      grow.fill(1); lit.fill(0);
+    }
+
     function draw(now) {
       running = false;
-      if (!current || !sprites) { return; }
+      if (!current || !sprites || waiting) { return; }
       var count = n, i, more = false, settled = !to;
-      var resting = settled && !intro && Math.abs(pointerX - driftX) < 0.2 && Math.abs(pointerY - driftY) < 0.2;
+      if (opening) { open(now); more = true; }
+      var resting = settled && !opening && !more && Math.abs(pointerX - driftX) < 0.2 && Math.abs(pointerY - driftY) < 0.2;
       if (resting && now - lastDrawn < REST_FRAME_MS) { if (visible && !reduced) { kick(); } return; }
       lastDrawn = now;
       if (to) {
@@ -114,7 +164,6 @@
 
       context.setTransform(scale, 0, 0, scale, 0, 0);
       context.clearRect(0, 0, width, height);
-      var introT = intro && !reduced ? Math.min(1, (now - introStart) / INTRO_MS) : 1;
       var tones = current.tone || baseTones;
       if (lite) {
         // On a phone each point is a small square of its colour, drawn one colour at a time: no scaled sprites and
@@ -124,7 +173,7 @@
           context.fillStyle = "rgb(" + TONES[tone].join(",") + ")";
           for (i = 0; i < count; i++) {
             if (tones[i] !== tone || current.alpha[i] <= 0.01) { continue; }
-            var side = (current.size ? current.size[i] : seeds.size[i]) * 0.42;
+            var side = (current.size ? current.size[i] : seeds.size[i]) * 0.42 * grow[i];
             context.globalAlpha = current.alpha[i];
             context.fillRect(current.x[i] - side / 2, current.y[i] - side / 2, side, side);
           }
@@ -135,28 +184,27 @@
       for (i = 0; i < count; i++) {
         var a = current.alpha[i];
         if (a <= 0.01) { continue; }
-        var shown = introT < 1 ? Math.max(0, Math.min(1, (introT - seeds.delay[i]) / 0.25)) : 1;
-        if (shown <= 0) { continue; }
-        // Lights come on across the city, each with a brief flare. Buildings with more homes burn a little larger.
-        var flare = introT < 1 ? 1 + (1 - shown) * 1.6 : 1;
-        var size = (current.size ? current.size[i] : seeds.size[i]) * flare;
+        // Buildings with more homes burn a little larger; in the opening a point flares as it lands.
+        var size = (current.size ? current.size[i] : seeds.size[i]) * grow[i];
         var twinkle = reduced || lite ? 1 : 0.86 + 0.14 * Math.sin(now * seeds.rate[i] + seeds.phase[i]);
         // In a chart the points breathe in place, a pixel at most, so the chart stays exact but alive.
         var float = !reduced && !lite && settled && !city ? Math.sin(now * seeds.rate[i] * 0.7 + seeds.phase[i]) * 0.8 : 0;
-        context.globalAlpha = a * shown * twinkle;
-        context.drawImage(sprites[tones[i]], current.x[i] + driftX - size / 2, current.y[i] + driftY + float - size / 2, size, size);
+        context.globalAlpha = Math.min(1, a * twinkle + lit[i] * 0.5);
+        context.drawImage(sprites[lit[i] > 0.35 ? 3 : tones[i]], current.x[i] + driftX - size / 2, current.y[i] + driftY + float - size / 2, size, size);
       }
       context.globalAlpha = 1;
       if (oldImage) { stamp(oldImage, 1 - Math.min(1, (now - startedAt) / FADE_MS)); }
       stamp(markImage, marksIn);
-      if (introT >= 1) { intro = false; }
-      if (more || intro || (visible && !reduced && !lite)) { kick(); }
+      if (more || (visible && !reduced && !lite)) { kick(); }
     }
     function kick() { if (running || !visible || !context) { return; } running = true; frame(draw); }
 
     function go(message) {
       seq = message.seq; city = message.city;
       var target = copy(message.layout);
+      // A chapter that starts during the opening carries the swarm on from wherever it is.
+      if (opening) { if (!opening.formed) { scope.postMessage({ type: "formed" }); } opening = null; grow.fill(1); lit.fill(0); }
+      waiting = false;
       release(oldImage); oldImage = markImage; markImage = null; marksIn = 0;
       if (!target.size) { target.size = seeds.size.slice(); }
       if (!current.size) { current.size = seeds.size.slice(); }
@@ -173,13 +221,27 @@
         case "init":
           canvas = message.canvas; context = canvas.getContext("2d"); n = message.n; baseTones = message.tones;
           seeds = { size: message.size, rate: message.rate, phase: message.phase, delay: message.delay, arc: new Float32Array(message.n) };
-          lite = message.lite; reduced = message.reduced; visible = message.visible !== false; intro = !lite;
+          lite = message.lite; reduced = message.reduced; visible = message.visible !== false;
+          grow = new Float32Array(n).fill(1); lit = new Float32Array(n);
+          spark = { x: new Float32Array(n), y: new Float32Array(n), vx: new Float32Array(n), vy: new Float32Array(n),
+                    spin: new Float32Array(n), delay: new Float32Array(n) };
+          for (var k = 0; k < n; k++) {
+            var heading = Math.random() * 6.283, pace = 8 + Math.random() * 22;
+            spark.x[k] = Math.random(); spark.y[k] = Math.random();
+            spark.vx[k] = Math.cos(heading) * pace; spark.vy[k] = Math.sin(heading) * pace;
+            spark.spin[k] = (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 1.1);
+            spark.delay[k] = Math.random() * 0.5;
+          }
           break;
         case "resize":
           seq = message.seq; width = message.width; height = message.height; scale = message.scale; lite = message.lite; city = message.city;
           canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale);
           sprites = TONES.map(sprite);
           current = copy(message.layout); from = to = null; marksIn = 1;
+          if (message.city) {                 // the city is where the opening lands
+            home = copy(message.layout); homeTop = Infinity; homeBottom = -Infinity;
+            for (var h = 0; h < n; h++) { homeTop = Math.min(homeTop, home.y[h]); homeBottom = Math.max(homeBottom, home.y[h]); }
+          } else if (opening) { finishOpening(); }
           release(oldImage); oldImage = null; release(markImage); markImage = null;
           break;
         case "go": if (current) { go(message); } break;
@@ -193,7 +255,19 @@
         case "pointer": pointerX = message.x; pointerY = message.y; break;
         case "visible": visible = message.value; break;
         case "reduced": reduced = message.value; break;
-        case "start": introStart = performance.now(); break;
+        case "start":
+          waiting = false;
+          if (OPENINGS[message.mode] && home && !reduced) { opening = { mode: message.mode, start: performance.now(), formed: false }; lastDrawn = 0; }
+          else { scope.postMessage({ type: "formed" }); }
+          break;
+        case "skip":
+          if (opening && !opening.skipAt) {
+            var o = opening, plan = OPENINGS[o.mode], now = performance.now(), at = now - o.start;
+            var finish = plan.from + plan.gather + FLARE_MS;
+            o.skipAt = now; o.skipFrom = Math.min(at, finish); o.rush = Math.max(1, (finish - o.skipFrom) / SKIP_MS);
+            if (!o.formed) { o.formed = true; scope.postMessage({ type: "formed" }); }
+          }
+          break;
       }
       kick();
     }
@@ -230,7 +304,7 @@
 
   NYC.onMount("#ov-stage", function (host) {
     var canvas = host.querySelector("canvas"), send = null, thread = null, init = null, seq = 0, marks = [], visible = true;
-    // On a phone (NYC.lite) the canvas draws at one device pixel, skips the light-up intro and draws only while the
+    // On a phone (NYC.lite) the canvas draws at one device pixel, plays a shorter opening and draws only while the
     // points travel, so it never competes with the reader's scrolling. The mode is read live (00-motion.js decides it
     // again when the window crosses the phone width), so a window that widens gets the full lights back.
     function isLite() { return !!(NYC.lite && NYC.lite()); }
@@ -238,7 +312,7 @@
 
     /* The renderer's host: a worker drawing on the canvas it was handed, or, where that is not offered, this page. */
     function onPage(target) {
-      var local = {};
+      var local = { postMessage: function (message) { heard({ data: message }); } };
       stageRenderer(local);
       thread = null;
       send = function (message) { local.onmessage({ data: message }); };
@@ -253,6 +327,7 @@
       var offscreen;
       try { offscreen = canvas.transferControlToOffscreen(); } catch (error) { worker.terminate(); return onPage(canvas); }
       thread = worker;
+      worker.onmessage = heard;
       send = function (message, transfer) { worker.postMessage(message, transfer || []); };
       // If the worker ever fails, the page takes over on a fresh canvas laid over the first (which it can no longer
       // draw on); the first keeps its accessible name, the new one is hidden from screen readers.
@@ -265,9 +340,34 @@
         init.canvas = onPage(fresh); init.visible = visible;
         send(init);
         resize();
-        send({ type: "start" });
+        send({ type: "start", mode: "none" });
       });
       return offscreen;
+    }
+
+    /* What the renderer says back: the city has formed, so the words beside it may come in. */
+    function heard(event) { if (event.data && event.data.type === "formed" && NYC.opened) { NYC.opened(); } }
+
+    /* Which opening to play: none for a reader who asked for less motion, or when the page opened away from the stage
+       (a link to a later part, or the hero already released); the quick one on a reload in the same tab; the short
+       one on a phone; otherwise the full one. */
+    function openingMode() {
+      var box = host.getBoundingClientRect();
+      if (NYC.reducedMotion() || !(NYC.isOpening && NYC.isOpening()) || box.bottom <= 0 || box.top >= window.innerHeight) { return "none"; }
+      var seen = false;
+      try { seen = window.sessionStorage.getItem("nyc-opened") === "1"; window.sessionStorage.setItem("nyc-opened", "1"); } catch (error) { /* private mode: play it in full */ }
+      return seen ? "quick" : isLite() ? "lite" : "full";      // on a phone the quick one is drawn with the light squares
+    }
+    /* The reader moving on (a scroll, a key, a press) hurries the opening to its end; the page never waits for it. */
+    function hurryOnInput() {
+      var events = ["wheel", "touchmove", "keydown", "pointerdown"];
+      function hurry() {
+        events.forEach(function (name) { window.removeEventListener(name, hurry, true); });
+        window.removeEventListener("scroll", hurry);
+        if (send) { send({ type: "skip" }); }
+      }
+      events.forEach(function (name) { window.addEventListener(name, hurry, { capture: true, passive: true }); });
+      window.addEventListener("scroll", hurry, { passive: true });
     }
 
     function plain(layout) {
@@ -386,12 +486,19 @@
       send(init, thread ? [target] : []);
       init.canvas = null;                           // handed over; a fallback fills in its own
       resize();
-      // The lights come on once the page has settled after Dash's first render, so the intro plays on a calm thread.
-      var begin = function () { send({ type: "start" }); };
-      if (window.requestIdleCallback) { window.requestIdleCallback(begin, { timeout: 300 }); } else { window.setTimeout(begin, 60); }
+      // The opening starts at once in a worker, which Dash's first render cannot slow; drawn on the page, it waits
+      // for the first idle moment so it plays on a calm thread.
+      var begin = function () {
+        var mode = openingMode();
+        send({ type: "start", mode: mode });
+        if (mode !== "none") { hurryOnInput(); if (NYC.openingStarted) { NYC.openingStarted(); } }
+      };
+      if (thread) { begin(); }
+      else if (window.requestIdleCallback) { window.requestIdleCallback(begin, { timeout: 300 }); } else { window.setTimeout(begin, 60); }
       Stage.listeners.forEach(function (listener) { listener(data); });
     }).catch(function (error) {
       host.setAttribute("data-failed", String(error));    // the text beside it stands without the canvas
+      if (NYC.opened) { NYC.opened(); }
     });
   });
 })();

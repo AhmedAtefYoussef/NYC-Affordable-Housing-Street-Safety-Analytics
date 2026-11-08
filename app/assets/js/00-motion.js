@@ -51,6 +51,31 @@
   }
   if (phoneLike.addEventListener) { phoneLike.addEventListener("change", remeasureLite); }
   else if (phoneLike.addListener) { phoneLike.addListener(remeasureLite); }
+  /* The opening. On arrival the hero's words wait while the stage's lights gather into the city (20-stage.js), and
+     come in once it says the city has formed: NYC.opened(). Nothing else waits: the page scrolls and every link works
+     throughout. Not held for a reader who asked for less motion, nor for a link that opens elsewhere on the page
+     (a #part or a query), and never for long: a timer lets the words in whatever happens, OPENING_WAIT_MS after load
+     if the city never starts (no data, no canvas), or OPENING_MAX_MS after it starts (NYC.openingStarted()). */
+  var OPENING_WAIT_MS = 5000, OPENING_MAX_MS = 3600, openingTimer = 0;
+  var opening = !motion.matches && !window.location.hash && !window.location.search, openingQueue = [];
+  document.documentElement.classList.toggle("is-opening", opening);
+  NYC.isOpening = function () { return opening; };
+  NYC.afterOpening = function (fn) { if (opening) { openingQueue.push(fn); } else { fn(); } };
+  NYC.opened = function () {
+    if (!opening) { return; }
+    opening = false;
+    var root = document.documentElement;
+    root.classList.remove("is-opening"); root.classList.add("is-opened");
+    document.querySelectorAll(".hero[aria-busy]").forEach(function (hero) { hero.removeAttribute("aria-busy"); });
+    openingQueue.splice(0).forEach(function (fn) { fn(); });
+    window.setTimeout(function () { root.classList.remove("is-opened"); }, 2400);
+  };
+  NYC.openingStarted = function () {
+    if (!opening) { return; }
+    window.clearTimeout(openingTimer);
+    openingTimer = window.setTimeout(NYC.opened, OPENING_MAX_MS);
+  };
+  if (opening) { openingTimer = window.setTimeout(NYC.opened, OPENING_WAIT_MS); }
   NYC.easeOut = function (t) { return 1 - Math.pow(1 - t, 4); };
   NYC.easeInOut = function (t) { return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2; };
 
@@ -83,6 +108,8 @@
     });
   }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }) : null;
   function whenSeen(element, fn) {
+    // The hero's entrances wait for the opening (see NYC.opened above).
+    if (opening && element.closest && element.closest(".hero")) { openingQueue.push(function () { whenSeen(element, fn); }); return; }
     if (!entrance) { element.classList.add("is-in"); if (fn) { fn(); } return; }
     if (fn) { element.__onEnter = fn; }
     entrance.observe(element);
@@ -307,6 +334,7 @@
     ticking = true;
     window.requestAnimationFrame(update);
   }
+  NYC.onMount(".hero", function (hero) { if (opening) { hero.setAttribute("aria-busy", "true"); } });
   NYC.onMount("[data-tint]", function (section) { sections.push(section); onScroll(); });
   NYC.onMount(".nav-link", function (link) { links.push(link); });
 
