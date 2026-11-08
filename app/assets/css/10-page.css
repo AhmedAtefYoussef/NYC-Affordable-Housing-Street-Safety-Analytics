@@ -15,8 +15,8 @@
   content: ""; position: absolute; left: 0; right: 0; bottom: 0.3rem; height: 1px; background: linear-gradient(90deg, var(--color-primary), rgb(var(--gold-rgb) / 0.15));
   transform: scaleX(0); transform-origin: left; transition: transform 520ms var(--ease-out);
 }
-.brand:hover, .brand:focus-visible { color: var(--color-accent-strong); }
-.brand:hover::after, .brand:focus-visible::after { transform: scaleX(1); }
+.brand:is(:where(.can-hover) :hover), .brand:focus-visible { color: var(--color-accent-strong); }
+.brand:is(:where(.can-hover) :hover)::after, .brand:focus-visible::after { transform: scaleX(1); }
 .brand:focus-visible { outline-offset: 4px; }
 /* The navigation: a lit pill of glass glides beneath the link pointed at, and rests under the section in view
    (placed by 00-motion.js). The links themselves never move. */
@@ -29,14 +29,15 @@
   transition: transform 520ms var(--ease-out), width 520ms var(--ease-out), opacity var(--duration-base) ease-out;
 }
 .nav-link { position: relative; z-index: 1; display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 var(--space-4); color: var(--color-ink-2); font-size: var(--text-sm); font-weight: 500; letter-spacing: 0.01em; text-decoration: none; white-space: nowrap; border-radius: 999px; transition: color var(--duration-base) ease-out; }
-.nav-link:hover { color: var(--color-ink); }
+.nav-link:is(:where(.can-hover) :hover) { color: var(--color-ink); }
 .nav-link[aria-current] { color: var(--color-accent-strong); }
 .nav-link:focus-visible { outline-offset: -2px; }
 
 /* One line of light runs down the left edge and fills with the reading position. */
-.thread { position: fixed; left: calc(var(--gutter) / 2); top: 0; bottom: 0; z-index: 30; width: 1px; background: var(--color-line); pointer-events: none; }
+.thread { container-type: size; position: fixed; left: calc(var(--gutter) / 2); top: 0; bottom: 0; z-index: 30; width: 1px; background: var(--color-line); pointer-events: none; }
 .thread::after { content: ""; position: absolute; inset: 0; background: var(--color-primary); transform: scaleY(var(--read, 0)); transform-origin: top; }
-.thread::before { content: ""; position: absolute; left: -3px; top: calc(var(--read, 0) * 100%); width: 7px; height: 7px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 0 18px 4px rgb(var(--gold-rgb) / 0.55); z-index: 1; }
+/* The bead rides the thread by transform (100cqh is the thread's height), so reading never re-lays out the page. */
+.thread::before { content: ""; position: absolute; left: -3px; top: 0; transform: translateY(calc(var(--read, 0) * 100cqh)); width: 7px; height: 7px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 0 18px 4px rgb(var(--gold-rgb) / 0.55); z-index: 1; }
 
 main { display: block; }
 .chapter, .band { position: relative; padding: var(--space-9) var(--gutter); }
@@ -72,7 +73,7 @@ main { display: block; }
 .hero .metric-value { font-size: clamp(2.25rem, 5.6vh, var(--text-2xl)); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
 .scroll-cue { position: absolute; left: 0; bottom: var(--space-5); display: inline-flex; align-items: center; gap: var(--space-3); color: var(--color-ink-3); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; }
-.scroll-cue:hover { color: var(--color-accent-strong); }
+.scroll-cue:is(:where(.can-hover) :hover) { color: var(--color-accent-strong); }
 .cue-line { position: relative; display: block; width: 3.5rem; height: 1px; overflow: hidden; background: var(--color-line-strong); }
 .cue-line::after { content: ""; position: absolute; inset: 0; background: var(--color-primary); transform: translateX(-100%); animation: cue 2.4s var(--ease-out) infinite; }
 @keyframes cue { 60%, 100% { transform: translateX(100%); } }

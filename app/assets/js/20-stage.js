@@ -125,7 +125,8 @@
       context.globalCompositeOperation = "source-over";
       context.globalAlpha = opacity;
       context.setTransform(1, 0, 0, 1, 0, 0);
-      context.drawImage(layer, 0, 0);
+      // The labels travel with the points under the pointer's parallax, so a chart's dots stay on their axis.
+      context.drawImage(layer, Math.round(driftX * scale), Math.round(driftY * scale));
       context.setTransform(scale, 0, 0, scale, 0, 0);
       context.globalAlpha = 1;
     }
@@ -156,6 +157,7 @@
         marksIn = Math.max(0, Math.min(1, (elapsed - FADE_MS - MOVE_MS * 0.55) / 500));
         if (finished && marksIn >= 1) { from = to = null; oldMarks = []; current.tone = current.toneNext || current.tone; } else { more = true; }
       }
+      if (reduced) { pointerX = pointerY = driftX = driftY = 0; }    // no parallax for a reader who asked for less motion
       driftX += (pointerX - driftX) * 0.06; driftY += (pointerY - driftY) * 0.06;
       if (Math.abs(pointerX - driftX) > 0.2 || Math.abs(pointerY - driftY) > 0.2) { more = true; }
 
@@ -226,6 +228,7 @@
     }
     if (window.matchMedia("(pointer: fine)").matches) {
       window.addEventListener("pointermove", function (event) {
+        if (NYC.reducedMotion()) { return; }
         pointerX = (event.clientX / window.innerWidth - 0.5) * -14; pointerY = (event.clientY / window.innerHeight - 0.5) * -10;
         kick();
       }, { passive: true });

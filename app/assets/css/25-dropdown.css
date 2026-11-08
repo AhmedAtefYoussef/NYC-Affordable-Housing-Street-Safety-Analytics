@@ -11,7 +11,7 @@
   background: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.025)); box-shadow: none; cursor: pointer;
   transition: border-color var(--duration-base) ease-out, background-color var(--duration-base) ease-out, box-shadow var(--duration-slow) var(--ease-out);
 }
-.dash-dropdown .dropdown:not(.is-open):not(.is-focused) > .Select-control:hover {
+.dash-dropdown .dropdown:not(.is-open):not(.is-focused) > .Select-control:is(:where(.can-hover) :hover) {
   border-color: rgb(var(--gold-rgb) / 0.6); background: linear-gradient(180deg, rgb(var(--gold-rgb) / 0.11), rgb(255 255 255 / 0.03));
   box-shadow: 0 0 30px -8px rgb(var(--gold-rgb) / 0.5);
 }
@@ -47,13 +47,13 @@
   flex: none; display: flex; align-items: center; justify-content: center; align-self: stretch; width: 2.5rem; padding: 0; color: var(--color-ink-2);
 }
 .dash-dropdown .dropdown .Select-clear-zone { width: 2rem; border-radius: calc(var(--radius) - 2px); transition: color var(--duration-fast) ease-out, background-color var(--duration-fast) ease-out; }
-.dash-dropdown .dropdown .Select-clear-zone:hover { color: var(--color-ink); background: rgb(255 255 255 / 0.08); }
+.dash-dropdown .dropdown .Select-clear-zone:is(:where(.can-hover) :hover) { color: var(--color-ink); background: rgb(255 255 255 / 0.08); }
 .dash-dropdown .dropdown .Select-clear { font-size: 1.35rem; line-height: 1; }
 .dash-dropdown .dropdown .Select-arrow, .dash-dropdown .dropdown.is-open .Select-arrow {
   position: static; width: 0.55rem; height: 0.55rem; margin: 0; border: solid var(--color-ink-2); border-width: 0 2px 2px 0; background: none;
   transform: translateY(-25%) rotate(45deg); transition: transform 380ms var(--ease-out), border-color var(--duration-fast) ease-out;
 }
-.dash-dropdown .dropdown:hover .Select-arrow { border-color: var(--color-primary); }
+.dash-dropdown .dropdown:is(:where(.can-hover) :hover) .Select-arrow { border-color: var(--color-primary); }
 .dash-dropdown .dropdown.is-open .Select-arrow { border-color: var(--color-accent-strong); transform: translateY(15%) rotate(-135deg); }
 
 /* The menu rises softly into place. */
@@ -98,7 +98,7 @@
   display: flex; align-items: center; justify-content: center; min-width: 1.75rem; padding: 0 6px 1px; border: 0; border-radius: 0;
   background: transparent; font-size: 1.1rem; line-height: 1; color: var(--color-accent-strong); cursor: pointer; transition: background-color var(--duration-fast) ease-out, color var(--duration-fast) ease-out;
 }
-.dash-dropdown .dropdown.Select--multi .Select-value-icon:hover, .dash-dropdown .dropdown.Select--multi .Select-value-icon:focus { background: var(--color-primary); color: var(--color-on-primary); }
+.dash-dropdown .dropdown.Select--multi .Select-value-icon:is(:where(.can-hover) :hover), .dash-dropdown .dropdown.Select--multi .Select-value-icon:focus { background: var(--color-primary); color: var(--color-on-primary); }
 .dash-dropdown .dropdown.Select--multi.is-disabled .Select-value { border-color: var(--color-line-strong); color: var(--color-ink-3); background: transparent; }
 .dash-dropdown .dropdown .Select-noresults { padding: var(--space-3) var(--space-4); color: var(--color-ink-2); background: transparent; font-size: var(--text-sm); }
 .dash-dropdown .dropdown .Select-menu-outer, .dash-dropdown .dropdown .ReactVirtualized__Grid { scrollbar-color: var(--color-line-strong) transparent; scrollbar-width: thin; outline: none; }

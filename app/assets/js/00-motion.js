@@ -26,6 +26,10 @@
   var TINTS = { midnight: "#0a0d1a", harbor: "#081521", plum: "#0d0f22", ember: "#0e1220" };
 
   NYC.reducedMotion = function () { return motion.matches; };
+  /* Hover styles apply only where a pointer truly hovers (see 00-base.css); decided again if the pointer changes. */
+  function markHover() { document.documentElement.classList.toggle("can-hover", fine.matches); }
+  markHover();
+  if (fine.addEventListener) { fine.addEventListener("change", markHover); } else if (fine.addListener) { fine.addListener(markHover); }
   /* Phones, touch screens and small processors get the light version: the same states, no blur filters, no
      scroll-lit words and a canvas that only draws while it moves. Two threads or fewer counts as a small processor;
      four is common on ordinary laptops, and some browsers report a low count on purpose, so four is not a phone. */
@@ -194,13 +198,23 @@
 
   /* The pointer's light on a .spot area trails the pointer: each frame it covers a fifth of the way that is left,
      and the loop stops as soon as it has caught up, so a still pointer costs nothing. */
-  var light = { el: null, x: 0, y: 0, tx: 0, ty: 0, raf: 0, fresh: false };
+  var light = { el: null, layer: null, x: 0, y: 0, tx: 0, ty: 0, raf: 0, fresh: false };
+  /* The area's light layer: added on first use, and again if a re-render cleared the area's children. */
+  function layerOf(spot) {
+    var layer = spot.firstElementChild;
+    if (layer && layer.classList.contains("spot-layer")) { return layer; }
+    layer = document.createElement("span");
+    layer.className = "spot-layer"; layer.setAttribute("aria-hidden", "true");
+    spot.insertBefore(layer, spot.firstChild);
+    return layer;
+  }
   function follow() {
     light.raf = 0;
     if (!light.el) { return; }
+    if (!light.layer || light.layer.parentNode !== light.el) { light.layer = layerOf(light.el); light.layer.style.setProperty("--lit", "1"); }
     light.x += (light.tx - light.x) * 0.2; light.y += (light.ty - light.y) * 0.2;
-    light.el.style.setProperty("--mx", light.x.toFixed(1) + "px");
-    light.el.style.setProperty("--my", light.y.toFixed(1) + "px");
+    light.layer.style.setProperty("--mx", light.x.toFixed(1) + "px");
+    light.layer.style.setProperty("--my", light.y.toFixed(1) + "px");
     if (Math.abs(light.tx - light.x) > 0.5 || Math.abs(light.ty - light.y) > 0.5) { light.raf = window.requestAnimationFrame(follow); }
   }
 
@@ -209,9 +223,9 @@
     if (!fine.matches || NYC.reducedMotion() || !event.target.closest) { return; }
     var spot = event.target.closest(".spot");
     if (spot !== light.el) {
-      if (light.el) { light.el.style.setProperty("--lit", "0"); }
-      light.el = spot;
-      if (spot) { light.fresh = true; spot.style.setProperty("--lit", "1"); }
+      if (light.layer) { light.layer.style.setProperty("--lit", "0"); }
+      light.el = spot; light.layer = spot ? layerOf(spot) : null;
+      if (spot) { light.fresh = true; light.layer.style.setProperty("--lit", "1"); }
     }
     if (spot) {
       var area = spot.getBoundingClientRect();
@@ -220,7 +234,7 @@
       if (!light.raf) { light.raf = window.requestAnimationFrame(follow); }
     }
   }, { passive: true });
-  document.addEventListener("pointerleave", function () { if (light.el) { light.el.style.setProperty("--lit", "0"); light.el = null; } });
+  document.addEventListener("pointerleave", function () { if (light.layer) { light.layer.style.setProperty("--lit", "0"); } light.el = light.layer = null; });
   document.addEventListener("pointerdown", function (event) {
     var button = event.target.closest && event.target.closest(".button");
     if (!button || NYC.reducedMotion()) { return; }
@@ -254,14 +268,19 @@
   });
 
   /* Reading position, section in view, ground tint. */
-  var ticking = false, sections = [], links = [], shownTint = null;
+  var ticking = false, sections = [], links = [], shownTint = null, page = null, thread = null, scrolled = null, read = null;
+  NYC.onMount(".page", function (element) { page = element; scrolled = null; });
+  NYC.onMount("#thread", function (element) { thread = element; read = null; });
   function update() {
     ticking = false;
     var doc = document.documentElement, height = window.innerHeight, top = window.scrollY;
-    var page = document.querySelector(".page");
-    if (page) { if (top > 40) { page.setAttribute("data-scrolled", ""); } else { page.removeAttribute("data-scrolled"); } }
-    var thread = document.getElementById("thread");
-    if (thread && thread.offsetParent !== null) { thread.style.setProperty("--read", Math.min(1, top / Math.max(1, doc.scrollHeight - height)).toFixed(4)); }
+    // Each is written only when it changes: a write, even of the same value, invalidates the styles beneath it.
+    if (page && (top > 40) !== scrolled) { scrolled = top > 40; if (scrolled) { page.setAttribute("data-scrolled", ""); } else { page.removeAttribute("data-scrolled"); } }
+    // getClientRects, not offsetParent: a fixed element has no offsetParent, so that test never let the thread fill.
+    if (thread && thread.getClientRects().length) {
+      var next = Math.min(1, top / Math.max(1, doc.scrollHeight - height)).toFixed(4);
+      if (next !== read) { read = next; thread.style.setProperty("--read", next); }
+    }
     updateScrub(height);
     var current = null;
     sections.forEach(function (section) {

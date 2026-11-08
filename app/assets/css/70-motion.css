@@ -3,7 +3,7 @@
 
 /* Words rise out of a mask, slightly turned and out of focus, one after another. */
 .kw { display: inline-block; overflow: hidden; vertical-align: top; padding-block: 0.14em; margin-block: -0.14em; padding-right: 0.04em; margin-right: -0.04em; }
-.kw-i { display: inline-block; transform: translateY(110%) rotate(5deg); transform-origin: left bottom; opacity: 0; filter: blur(8px); transition: transform 900ms var(--ease-out), opacity 700ms ease-out, filter 700ms ease-out; transition-delay: calc(var(--i) * 42ms); will-change: transform; }
+.kw-i { display: inline-block; transform: translateY(110%) rotate(5deg); transform-origin: left bottom; opacity: 0; filter: blur(8px); transition: transform 900ms var(--ease-out), opacity 700ms ease-out, filter 700ms ease-out; transition-delay: calc(var(--i) * 42ms); }
 .is-in .kw-i { transform: none; opacity: 1; filter: blur(0); }
 
 /* Whole blocks that fade up as they enter. */
