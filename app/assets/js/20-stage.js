@@ -71,13 +71,14 @@
     var scale = 1, current = null, from = null, to = null, startedAt = 0, seeds = null, visible = true;
     var pointerX = 0, pointerY = 0, driftX = 0, driftY = 0;
     // On a phone (NYC.lite) the canvas draws at one device pixel, skips the light-up intro and draws only while the
-    // points travel, so it never competes with the reader's scrolling.
-    var lite = NYC.lite && NYC.lite();
-    var intro = !lite, running = false, marks = [], oldMarks = [], marksIn = 1, lastDrawn = 0;
+    // points travel, so it never competes with the reader's scrolling. The mode is read live (00-motion.js decides it
+    // again when the window crosses the phone width), so a window that widens gets the full lights back.
+    function isLite() { return !!(NYC.lite && NYC.lite()); }
+    var intro = !isLite(), running = false, marks = [], oldMarks = [], marksIn = 1, lastDrawn = 0;
     var markLayer = document.createElement("canvas"), oldLayer = document.createElement("canvas");
 
     function resize() {
-      scale = lite ? 1 : Math.min(window.devicePixelRatio || 1, MAX_SCALE);
+      scale = isLite() ? 1 : Math.min(window.devicePixelRatio || 1, MAX_SCALE);
       Stage.width = host.clientWidth; Stage.height = host.clientHeight;
       canvas.width = Math.round(Stage.width * scale); canvas.height = Math.round(Stage.height * scale);
       if (!Stage.data) { return; }
@@ -134,7 +135,7 @@
     function draw(now) {
       running = false;
       if (!Stage.data || !current) { return; }
-      var n = Stage.data.n, i, more = false, reduced = NYC.reducedMotion(), settled = !to;
+      var n = Stage.data.n, i, more = false, reduced = NYC.reducedMotion(), settled = !to, lite = isLite();
       var resting = settled && !intro && Math.abs(pointerX - driftX) < 0.2 && Math.abs(pointerY - driftY) < 0.2;
       if (resting && now - lastDrawn < REST_FRAME_MS) { if (visible && !reduced) { kick(); } return; }
       lastDrawn = now;
@@ -218,6 +219,8 @@
     };
 
     new ResizeObserver(resize).observe(host);
+    // Leaving or entering the light version changes the canvas resolution and the drawing style: redraw at once.
+    window.addEventListener("nyc:lite", resize);
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; if (visible) { kick(); } }).observe(host);
     }
