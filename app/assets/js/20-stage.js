@@ -28,10 +28,10 @@
   /* The renderer. Self-contained (it reads nothing from the page around it), because it is also sent, as text, to a
      worker. It takes messages through scope.onmessage:
 
-       init     { canvas, n, size, rate, phase, delay, tones, lite, reduced }   the canvas, and each point's own seeds
+       init     { canvas, n, size, rate, phase, delay, tones, lite, reduced, visible }   the canvas and each point's seeds
        resize   { seq, width, height, scale, lite, city, layout }               a new size: snap to the arrangement
        go       { seq, city, layout }                                           travel to a new arrangement
-       marks    { seq, image }                                                  the arrangement's words, painted
+       marks    { seq, image } or { seq, pixels }                               the arrangement's words, painted
        pointer  { x, y }   visible { value }   reduced { value }   start         the intro begins
 
      At rest (nothing travelling, pointer still) the twinkle is drawn at about 30 frames a second. */
@@ -173,7 +173,7 @@
         case "init":
           canvas = message.canvas; context = canvas.getContext("2d"); n = message.n; baseTones = message.tones;
           seeds = { size: message.size, rate: message.rate, phase: message.phase, delay: message.delay, arc: new Float32Array(message.n) };
-          lite = message.lite; reduced = message.reduced; intro = !lite;
+          lite = message.lite; reduced = message.reduced; visible = message.visible !== false; intro = !lite;
           break;
         case "resize":
           seq = message.seq; width = message.width; height = message.height; scale = message.scale; lite = message.lite; city = message.city;
@@ -184,7 +184,11 @@
           break;
         case "go": if (current) { go(message); } break;
         case "marks":
-          if (message.seq === seq) { release(markImage); markImage = message.image; } else { release(message.image); }
+          if (message.pixels) {               // raw pixels, when the page could not make an image: make it here
+            self.createImageBitmap(message.pixels).then(function (image) {
+              if (message.seq === seq) { release(markImage); markImage = image; kick(); } else { release(image); }
+            });
+          } else if (message.seq === seq) { release(markImage); markImage = message.image; } else { release(message.image); }
           break;
         case "pointer": pointerX = message.x; pointerY = message.y; break;
         case "visible": visible = message.value; break;
@@ -225,7 +229,7 @@
   };
 
   NYC.onMount("#ov-stage", function (host) {
-    var canvas = host.querySelector("canvas"), send = null, thread = null, init = null, seq = 0, marks = [];
+    var canvas = host.querySelector("canvas"), send = null, thread = null, init = null, seq = 0, marks = [], visible = true;
     // On a phone (NYC.lite) the canvas draws at one device pixel, skips the light-up intro and draws only while the
     // points travel, so it never competes with the reader's scrolling. The mode is read live (00-motion.js decides it
     // again when the window crosses the phone width), so a window that widens gets the full lights back.
@@ -258,7 +262,7 @@
         var fresh = document.createElement("canvas");
         fresh.className = canvas.className; fresh.setAttribute("aria-hidden", "true");
         canvas.parentNode.insertBefore(fresh, canvas.nextSibling);
-        init.canvas = onPage(fresh);
+        init.canvas = onPage(fresh); init.visible = visible;
         send(init);
         resize();
         send({ type: "start" });
@@ -311,6 +315,10 @@
         var worker = thread;
         window.createImageBitmap(layer).then(function (image) {
           if (thread === worker) { send({ type: "marks", seq: mine, image: image }, [image]); } else { send({ type: "marks", seq: mine, image: layer }); }
+        }, function () {
+          // No image could be made here: hand over the raw pixels instead, and the worker makes the image itself.
+          var pixels = g.getImageData(0, 0, layer.width, layer.height);
+          if (thread === worker) { send({ type: "marks", seq: mine, pixels: pixels }, [pixels.data.buffer]); } else { send({ type: "marks", seq: mine, image: layer }); }
         });
       } else {
         send({ type: "marks", seq: mine, image: layer });
@@ -345,11 +353,15 @@
     function onMotion() { if (send) { send({ type: "reduced", value: motion.matches }); } }
     if (motion.addEventListener) { motion.addEventListener("change", onMotion); } else if (motion.addListener) { motion.addListener(onMotion); }
     if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (entries) { if (send) { send({ type: "visible", value: entries[0].isIntersecting }); } }).observe(host);
+      // Kept here as well, so a renderer that starts later (or takes over after a failure) starts with the right state.
+      new IntersectionObserver(function (entries) {
+        visible = entries[0].isIntersecting;
+        if (send) { send({ type: "visible", value: visible }); }
+      }).observe(host);
     }
     if (window.matchMedia("(pointer: fine)").matches) {
       window.addEventListener("pointermove", function (event) {
-        if (!send || NYC.reducedMotion()) { return; }
+        if (!send || !visible || NYC.reducedMotion()) { return; }
         send({ type: "pointer", x: (event.clientX / window.innerWidth - 0.5) * -14, y: (event.clientY / window.innerHeight - 0.5) * -10 });
       }, { passive: true });
     }
@@ -370,7 +382,7 @@
       Stage.seeds = seeds;
       var target = connect();
       init = { type: "init", canvas: target, n: n, size: seeds.size, rate: seeds.rate, phase: seeds.phase, delay: seeds.delay,
-               tones: data.new, lite: isLite(), reduced: NYC.reducedMotion() };
+               tones: data.new, lite: isLite(), reduced: NYC.reducedMotion(), visible: visible };
       send(init, thread ? [target] : []);
       init.canvas = null;                           // handed over; a fallback fills in its own
       resize();

@@ -7,7 +7,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 :root { accent-color: var(--color-primary); scrollbar-color: var(--color-line-strong) transparent; scrollbar-width: thin; --gutter: clamp(1.25rem, 5vw, 5.5rem); --tint: var(--color-page); }
 /* Hover: every :hover rule is written :is(:where(.can-hover) :hover), so it applies only where a mouse or trackpad
-   hovers (00-motion.js sets .can-hover on the root, live). On a touch screen a tapped button would otherwise stay lit.
+   can hover (00-motion.js sets .can-hover on the root, live). On a touch screen a tapped button would otherwise stay lit.
    :where() adds no specificity, so each rule weighs what a bare :hover did.
    The scrollbar's gutter is kept when the Generate sequence locks the page, so nothing shifts under it. */
 html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; scroll-behavior: smooth; scroll-padding-top: 5rem; background: var(--color-page); }

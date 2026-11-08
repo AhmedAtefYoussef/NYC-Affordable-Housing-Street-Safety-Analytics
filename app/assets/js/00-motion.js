@@ -26,10 +26,12 @@
   var TINTS = { midnight: "#0a0d1a", harbor: "#081521", plum: "#0d0f22", ember: "#0e1220" };
 
   NYC.reducedMotion = function () { return motion.matches; };
-  /* Hover styles apply only where a pointer truly hovers (see 00-base.css); decided again if the pointer changes. */
-  function markHover() { document.documentElement.classList.toggle("can-hover", fine.matches); }
+  /* Hover styles apply wherever any pointer can hover (see 00-base.css): a phone has none, a touchscreen laptop with
+     a mouse does. Decided again if a pointer is added or removed. */
+  var anyHover = window.matchMedia("(any-hover: hover)");
+  function markHover() { document.documentElement.classList.toggle("can-hover", anyHover.matches); }
   markHover();
-  if (fine.addEventListener) { fine.addEventListener("change", markHover); } else if (fine.addListener) { fine.addListener(markHover); }
+  if (anyHover.addEventListener) { anyHover.addEventListener("change", markHover); } else if (anyHover.addListener) { anyHover.addListener(markHover); }
   /* Phones, touch screens and small processors get the light version: the same states, no blur filters, no
      scroll-lit words and a canvas that only draws while it moves. Two threads or fewer counts as a small processor;
      four is common on ordinary laptops, and some browsers report a low count on purpose, so four is not a phone. */
