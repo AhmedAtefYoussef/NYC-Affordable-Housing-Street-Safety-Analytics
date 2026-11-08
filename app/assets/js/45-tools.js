@@ -110,6 +110,7 @@
     var list = el("ul", "bk-results", null, { id: "bk-results", role: "listbox", "aria-label": "Matches", hidden: "" });
     var status = el("p", "visually-hidden", "", { role: "status", "aria-live": "polite" });
     ring.appendChild(input);
+    ring.appendChild(el("span", "bk-ring-light", null, { "aria-hidden": "true" }));   // the arc that turns on focus (50-tools.css)
     field.appendChild(label); field.appendChild(ring); field.appendChild(list); field.appendChild(status);
     search.appendChild(field);
 
@@ -201,8 +202,8 @@
     }
     function travel(node) {                                     // a light that runs from the left edge to its place
       var to = node.getAttribute("data-travel");
-      if (reduced()) { node.style.left = to + "%"; return; }
-      node.style.left = "0%"; void node.offsetWidth; node.style.left = to + "%";
+      if (reduced()) { node.style.setProperty("--at", to); return; }
+      node.style.setProperty("--at", "0"); void node.offsetWidth; node.style.setProperty("--at", to);
     }
     function failure(message) {
       var box = el("div", "bk-record-inner bk-miss");
@@ -577,7 +578,7 @@
     plot.appendChild(rowNow); plot.appendChild(rowRef); plot.appendChild(zero); plot.appendChild(ticks);
     axisEl.setAttribute("role", "img");
     axisEl.appendChild(plot);
-    place(barRef, published.low, published.high); dotRef.style.left = pos(published.estimate) + "%";
+    place(barRef, published.low, published.high); dotRef.style.setProperty("--at", pos(published.estimate));
 
     /* Every scenario tried leaves a faint mark on the axis, so the reader sees how far the answer has wandered. */
     var trail = [], TRAIL = 12;
@@ -695,7 +696,7 @@
       if (prior) { place(ghost, prior.low, prior.high); ghost.style.opacity = "0.5"; }
       if (result.status === "ok") {
         barNow.style.opacity = "1"; dotNow.style.opacity = "1";
-        place(barNow, result.low, result.high); dotNow.style.left = pos(result.estimate) + "%";
+        place(barNow, result.low, result.high); dotNow.style.setProperty("--at", pos(result.estimate));
         barNow.classList.toggle("is-excl", result.excludes_zero);
         state.drawn = { low: result.low, high: result.high };
       } else { barNow.style.opacity = "0"; dotNow.style.opacity = "0"; }

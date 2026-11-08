@@ -26,6 +26,12 @@
   var TINTS = { midnight: "#0a0d1a", harbor: "#081521", plum: "#0d0f22", ember: "#0e1220" };
 
   NYC.reducedMotion = function () { return motion.matches; };
+  /* Hover styles apply wherever any pointer can hover (see 00-base.css): a phone has none, a touchscreen laptop with
+     a mouse does. Decided again if a pointer is added or removed. */
+  var anyHover = window.matchMedia("(any-hover: hover)");
+  function markHover() { document.documentElement.classList.toggle("can-hover", anyHover.matches); }
+  markHover();
+  if (anyHover.addEventListener) { anyHover.addEventListener("change", markHover); } else if (anyHover.addListener) { anyHover.addListener(markHover); }
   /* Phones, touch screens and small processors get the light version: the same states, no blur filters, no
      scroll-lit words and a canvas that only draws while it moves. Two threads or fewer counts as a small processor;
      four is common on ordinary laptops, and some browsers report a low count on purpose, so four is not a phone. */
@@ -45,6 +51,31 @@
   }
   if (phoneLike.addEventListener) { phoneLike.addEventListener("change", remeasureLite); }
   else if (phoneLike.addListener) { phoneLike.addListener(remeasureLite); }
+  /* The opening. On arrival the hero's words wait while the stage's lights gather into the city (20-stage.js), and
+     come in once it says the city has formed: NYC.opened(). Nothing else waits: the page scrolls and every link works
+     throughout. Not held for a reader who asked for less motion, nor for a link that opens elsewhere on the page
+     (a #part or a query), and never for long: a timer lets the words in whatever happens, OPENING_WAIT_MS after load
+     if the city never starts (no data, no canvas), or OPENING_MAX_MS after it starts (NYC.openingStarted()). */
+  var OPENING_WAIT_MS = 5000, OPENING_MAX_MS = 3600, openingTimer = 0;
+  var opening = !motion.matches && !window.location.hash && !window.location.search, openingQueue = [];
+  document.documentElement.classList.toggle("is-opening", opening);
+  NYC.isOpening = function () { return opening; };
+  NYC.afterOpening = function (fn) { if (opening) { openingQueue.push(fn); } else { fn(); } };
+  NYC.opened = function () {
+    if (!opening) { return; }
+    opening = false;
+    var root = document.documentElement;
+    root.classList.remove("is-opening"); root.classList.add("is-opened");
+    document.querySelectorAll(".hero[aria-busy]").forEach(function (hero) { hero.removeAttribute("aria-busy"); });
+    openingQueue.splice(0).forEach(function (fn) { fn(); });
+    window.setTimeout(function () { root.classList.remove("is-opened"); }, 2400);
+  };
+  NYC.openingStarted = function () {
+    if (!opening) { return; }
+    window.clearTimeout(openingTimer);
+    openingTimer = window.setTimeout(NYC.opened, OPENING_MAX_MS);
+  };
+  if (opening) { openingTimer = window.setTimeout(NYC.opened, OPENING_WAIT_MS); }
   NYC.easeOut = function (t) { return 1 - Math.pow(1 - t, 4); };
   NYC.easeInOut = function (t) { return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2; };
 
@@ -77,6 +108,8 @@
     });
   }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }) : null;
   function whenSeen(element, fn) {
+    // The hero's entrances wait for the opening (see NYC.opened above).
+    if (opening && element.closest && element.closest(".hero")) { openingQueue.push(function () { whenSeen(element, fn); }); return; }
     if (!entrance) { element.classList.add("is-in"); if (fn) { fn(); } return; }
     if (fn) { element.__onEnter = fn; }
     entrance.observe(element);
@@ -194,13 +227,23 @@
 
   /* The pointer's light on a .spot area trails the pointer: each frame it covers a fifth of the way that is left,
      and the loop stops as soon as it has caught up, so a still pointer costs nothing. */
-  var light = { el: null, x: 0, y: 0, tx: 0, ty: 0, raf: 0, fresh: false };
+  var light = { el: null, layer: null, x: 0, y: 0, tx: 0, ty: 0, raf: 0, fresh: false };
+  /* The area's light layer: added on first use, and again if a re-render cleared the area's children. */
+  function layerOf(spot) {
+    var layer = spot.firstElementChild;
+    if (layer && layer.classList.contains("spot-layer")) { return layer; }
+    layer = document.createElement("span");
+    layer.className = "spot-layer"; layer.setAttribute("aria-hidden", "true");
+    spot.insertBefore(layer, spot.firstChild);
+    return layer;
+  }
   function follow() {
     light.raf = 0;
     if (!light.el) { return; }
+    if (!light.layer || light.layer.parentNode !== light.el) { light.layer = layerOf(light.el); light.layer.style.setProperty("--lit", "1"); }
     light.x += (light.tx - light.x) * 0.2; light.y += (light.ty - light.y) * 0.2;
-    light.el.style.setProperty("--mx", light.x.toFixed(1) + "px");
-    light.el.style.setProperty("--my", light.y.toFixed(1) + "px");
+    light.layer.style.setProperty("--mx", light.x.toFixed(1) + "px");
+    light.layer.style.setProperty("--my", light.y.toFixed(1) + "px");
     if (Math.abs(light.tx - light.x) > 0.5 || Math.abs(light.ty - light.y) > 0.5) { light.raf = window.requestAnimationFrame(follow); }
   }
 
@@ -209,9 +252,9 @@
     if (!fine.matches || NYC.reducedMotion() || !event.target.closest) { return; }
     var spot = event.target.closest(".spot");
     if (spot !== light.el) {
-      if (light.el) { light.el.style.setProperty("--lit", "0"); }
-      light.el = spot;
-      if (spot) { light.fresh = true; spot.style.setProperty("--lit", "1"); }
+      if (light.layer) { light.layer.style.setProperty("--lit", "0"); }
+      light.el = spot; light.layer = spot ? layerOf(spot) : null;
+      if (spot) { light.fresh = true; light.layer.style.setProperty("--lit", "1"); }
     }
     if (spot) {
       var area = spot.getBoundingClientRect();
@@ -220,7 +263,7 @@
       if (!light.raf) { light.raf = window.requestAnimationFrame(follow); }
     }
   }, { passive: true });
-  document.addEventListener("pointerleave", function () { if (light.el) { light.el.style.setProperty("--lit", "0"); light.el = null; } });
+  document.addEventListener("pointerleave", function () { if (light.layer) { light.layer.style.setProperty("--lit", "0"); } light.el = light.layer = null; });
   document.addEventListener("pointerdown", function (event) {
     var button = event.target.closest && event.target.closest(".button");
     if (!button || NYC.reducedMotion()) { return; }
@@ -254,14 +297,19 @@
   });
 
   /* Reading position, section in view, ground tint. */
-  var ticking = false, sections = [], links = [], shownTint = null;
+  var ticking = false, sections = [], links = [], shownTint = null, page = null, thread = null, scrolled = null, read = null;
+  NYC.onMount(".page", function (element) { page = element; scrolled = null; });
+  NYC.onMount("#thread", function (element) { thread = element; read = null; });
   function update() {
     ticking = false;
     var doc = document.documentElement, height = window.innerHeight, top = window.scrollY;
-    var page = document.querySelector(".page");
-    if (page) { if (top > 40) { page.setAttribute("data-scrolled", ""); } else { page.removeAttribute("data-scrolled"); } }
-    var thread = document.getElementById("thread");
-    if (thread && thread.offsetParent !== null) { thread.style.setProperty("--read", Math.min(1, top / Math.max(1, doc.scrollHeight - height)).toFixed(4)); }
+    // Each is written only when it changes: a write, even of the same value, invalidates the styles beneath it.
+    if (page && (top > 40) !== scrolled) { scrolled = top > 40; if (scrolled) { page.setAttribute("data-scrolled", ""); } else { page.removeAttribute("data-scrolled"); } }
+    // getClientRects, not offsetParent: a fixed element has no offsetParent, so that test never let the thread fill.
+    if (thread && thread.getClientRects().length) {
+      var next = Math.min(1, top / Math.max(1, doc.scrollHeight - height)).toFixed(4);
+      if (next !== read) { read = next; thread.style.setProperty("--read", next); }
+    }
     updateScrub(height);
     var current = null;
     sections.forEach(function (section) {
@@ -286,6 +334,7 @@
     ticking = true;
     window.requestAnimationFrame(update);
   }
+  NYC.onMount(".hero", function (hero) { if (opening) { hero.setAttribute("aria-busy", "true"); } });
   NYC.onMount("[data-tint]", function (section) { sections.push(section); onScroll(); });
   NYC.onMount(".nav-link", function (link) { links.push(link); });
 

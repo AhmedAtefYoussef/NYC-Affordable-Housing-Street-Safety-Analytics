@@ -34,10 +34,11 @@
             "Drawing your charts"];
   }
 
-  function sprite(rgb) {
-    var size = SPARK * 2, canvas = document.createElement("canvas");
+  /* A spark drawn at the canvas's own resolution, so its bright core stays sharp on a high-density screen. */
+  function sprite(rgb, scale) {
+    var r = SPARK * scale, size = Math.ceil(r * 2), canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
-    var context = canvas.getContext("2d"), glow = context.createRadialGradient(SPARK, SPARK, 0, SPARK, SPARK, SPARK), color = rgb.join(",");
+    var context = canvas.getContext("2d"), glow = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, r), color = rgb.join(",");
     glow.addColorStop(0, "rgba(" + color + ",1)"); glow.addColorStop(0.16, "rgba(" + color + ",0.6)");
     glow.addColorStop(0.45, "rgba(" + color + ",0.05)"); glow.addColorStop(1, "rgba(" + color + ",0)");
     context.fillStyle = glow; context.fillRect(0, 0, size, size);
@@ -72,6 +73,30 @@
     return { points: out, top: top, bottom: top + drawH, left: left, right: left + drawW };
   }
 
+  /* The overlay's ground, painted once per opening: the page colour with a faint glow behind the city, and a
+     dither of single steps of light and shade, so the dark gradient shows no bands on an 8-bit screen. */
+  function groundLayer(width, height, scale) {
+    var layer = document.createElement("canvas");
+    layer.width = Math.round(width * scale); layer.height = Math.round(height * scale);
+    var g = layer.getContext("2d");
+    g.setTransform(scale, 0, 0, scale, 0, 0);
+    var glow = g.createRadialGradient(width / 2, height * 0.42, 0, width / 2, height * 0.42, Math.max(width, height) * 0.7);
+    glow.addColorStop(0, "#10162b"); glow.addColorStop(1, "#0a0d1a");
+    g.fillStyle = glow; g.fillRect(0, 0, width, height);
+    var TILE = 64, tile = document.createElement("canvas"), t = tile.getContext("2d"), noise = t.createImageData(TILE, TILE);
+    tile.width = tile.height = TILE;
+    for (var k = 0; k < noise.data.length; k += 4) {
+      var roll = Math.random();
+      // White at 1/255 lifts a dark pixel one step; black at 12/255 lowers it one step; a third stay as they are.
+      if (roll < 0.333) { noise.data[k] = noise.data[k + 1] = noise.data[k + 2] = 255; noise.data[k + 3] = 1; }
+      else if (roll < 0.667) { noise.data[k + 3] = 12; }
+    }
+    t.putImageData(noise, 0, 0);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = g.createPattern(tile, "repeat"); g.fillRect(0, 0, layer.width, layer.height);
+    return layer;
+  }
+
   function open() {
     if (overlay) { return; }
     done = finishing = false; leftAt = 0; opening = 0;
@@ -98,10 +123,11 @@
     var context = canvas.getContext("2d"), width = window.innerWidth, height = window.innerHeight, scale = NYC.lite && NYC.lite() ? 1 : Math.min(window.devicePixelRatio || 1, MAX_SCALE);
     canvas.width = width * scale; canvas.height = height * scale;
     context.scale(scale, scale);
-    var sprites = TONES.map(sprite), city = reduced ? null : cloud(width, height), rings = [];
-    // The ground: the page colour with a faint glow behind the city, painted by the canvas on every frame.
-    var ground = context.createRadialGradient(width / 2, height * 0.42, 0, width / 2, height * 0.42, Math.max(width, height) * 0.7);
-    ground.addColorStop(0, "#10162b"); ground.addColorStop(1, "#0a0d1a");
+    var sprites = TONES.map(function (rgb) { return sprite(rgb, scale); }), city = reduced ? null : cloud(width, height), rings = [];
+    // The ground is drawn from its layer on every frame; the sweep's band is built once and moved into place.
+    var ground = city ? groundLayer(width, height, scale) : null;
+    var band = context.createLinearGradient(0, -40, 0, 40);
+    band.addColorStop(0, "rgba(232,192,116,0)"); band.addColorStop(0.5, "rgba(232,192,116,0.10)"); band.addColorStop(1, "rgba(232,192,116,0)");
     if (city) { overlay.classList.add("is-canvas"); }
     var GATHER_FROM = 450, GATHER_MS = 1500, SCAN_FROM = 1700, SCAN_MS = 1500;
 
@@ -116,7 +142,7 @@
       bar.firstChild.style.setProperty("--p", Math.min(done ? 1 : 0.94, elapsed / MIN_MS).toFixed(3));
       if (city) {
         context.globalCompositeOperation = "source-over";
-        context.fillStyle = ground; context.fillRect(0, 0, width, height);
+        context.drawImage(ground, 0, 0, width, height);
         context.globalCompositeOperation = "lighter";
         var gather = (elapsed - GATHER_FROM) / GATHER_MS, scan = ((elapsed - SCAN_FROM) % SCAN_MS) / SCAN_MS;
         var scanning = elapsed > SCAN_FROM, scanY = city.top - 30 + scan * (city.bottom - city.top + 60);
@@ -138,9 +164,9 @@
         context.globalAlpha = 1;
         if (scanning && !burst) {
           // The sweep: a soft band of light with a bright core.
-          var band = context.createLinearGradient(0, scanY - 40, 0, scanY + 40);
-          band.addColorStop(0, "rgba(232,192,116,0)"); band.addColorStop(0.5, "rgba(232,192,116,0.10)"); band.addColorStop(1, "rgba(232,192,116,0)");
-          context.fillStyle = band; context.fillRect(city.left - 40, scanY - 40, city.right - city.left + 80, 80);
+          context.translate(0, scanY);
+          context.fillStyle = band; context.fillRect(city.left - 40, -40, city.right - city.left + 80, 80);
+          context.translate(0, -scanY);
           context.fillStyle = "rgba(255,240,205,0.5)"; context.fillRect(city.left - 40, scanY - 0.5, city.right - city.left + 80, 1);
           // 250 m rings at real sites the sweep has just passed.
           if (rings.length < RINGS && Math.random() < 0.06) {

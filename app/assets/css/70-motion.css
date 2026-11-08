@@ -3,12 +3,26 @@
 
 /* Words rise out of a mask, slightly turned and out of focus, one after another. */
 .kw { display: inline-block; overflow: hidden; vertical-align: top; padding-block: 0.14em; margin-block: -0.14em; padding-right: 0.04em; margin-right: -0.04em; }
-.kw-i { display: inline-block; transform: translateY(110%) rotate(5deg); transform-origin: left bottom; opacity: 0; filter: blur(8px); transition: transform 900ms var(--ease-out), opacity 700ms ease-out, filter 700ms ease-out; transition-delay: calc(var(--i) * 42ms); will-change: transform; }
+.kw-i { display: inline-block; transform: translateY(110%) rotate(5deg); transform-origin: left bottom; opacity: 0; filter: blur(8px); transition: transform 900ms var(--ease-out), opacity 700ms ease-out, filter 700ms ease-out; transition-delay: calc(var(--i) * 42ms); }
 .is-in .kw-i { transform: none; opacity: 1; filter: blur(0); }
 
 /* Whole blocks that fade up as they enter. */
 .lift { opacity: 0; transform: translateY(22px); filter: blur(6px); transition: opacity 1000ms var(--ease-out), transform 1000ms var(--ease-out), filter 900ms var(--ease-out); transition-delay: calc(var(--i, 0) * 70ms); }
 .lift.is-in { opacity: 1; transform: none; filter: none; }
+
+/* The opening (00-motion.js, 20-stage.js): while the lights gather into the city, the hero's other parts wait unseen
+   but in place (the title and lead wait in their own split state). Once the city has formed they settle in, one
+   after another, behind the title. On a phone the city stays bright while it forms, then dims behind the words. */
+.is-opening .hero > :not([data-kinetic]) { opacity: 0; }
+/* ...and the title and lead do not show as plain text in the moment before the script splits them. */
+.is-opening .hero > [data-kinetic]:not(.lift):not(:has(.kw)) { opacity: 0; }
+.hero-kicker { --i: 0; }
+.stage-legend { --i: 3; }
+.hero-answers { --i: 4; }
+.hero-actions { --i: 5; }
+.scroll-cue { --i: 7; }
+.is-opened .hero > :not([data-kinetic]) { animation: settle 900ms var(--ease-out) backwards; animation-delay: calc(120ms + var(--i, 0) * 110ms); }
+.is-opening .story-root:has(.hero.is-active) .stage-canvas { opacity: 1; }
 
 /* Scroll-lit words: the script sets each word's opacity from the scroll position. */
 .sw { transition: opacity 180ms linear; }

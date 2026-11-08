@@ -155,23 +155,40 @@
   // ---------- Method ----------
   function mountJourney(journey) {
     var stages = Array.prototype.slice.call(journey.querySelectorAll(".md-stage"));
+    // --p is written on the track alone (it holds only the line and its head): on the journey it would restyle every
+    // stage on every scroll frame. The work runs once per frame, and only while the journey is near the window.
+    var track = journey.querySelector(".md-track") || journey, shown = -1, ticking = false, near = true;
     function set(progress) {
-      journey.style.setProperty("--p", progress.toFixed(4));
+      var text = progress.toFixed(4);
+      if (text === shown) { return; }
+      shown = text;
+      track.style.setProperty("--p", text);
       stages.forEach(function (stage, index) {
-        stage.classList.toggle("is-lit", progress >= index / stages.length + (index ? 0.04 : -1));
+        var lit = progress >= index / stages.length + (index ? 0.04 : -1);
+        if (lit !== stage.classList.contains("is-lit")) { stage.classList.toggle("is-lit", lit); }
       });
     }
     if (NYC.reducedMotion()) { set(1); return; }
     journey.classList.add("is-live");
-    function update() {
+    function measure() {
+      ticking = false;
       if (!journey.isConnected) { window.removeEventListener("scroll", update); window.removeEventListener("resize", update); return; }
       var height = window.innerHeight, box = journey.getBoundingClientRect();
       var progress = (height * 0.85 - box.top) / (box.height + height * 0.15);
       set(Math.max(0, Math.min(1, progress)));
     }
+    function update() {
+      if (ticking || !near) { return; }
+      ticking = true;
+      window.requestAnimationFrame(measure);
+    }
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) { near = entries[0].isIntersecting; if (near) { update(); } },
+                               { rootMargin: "25% 0px 25% 0px" }).observe(journey);
+    }
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
-    update();
+    measure();
   }
 
   function mountCleaningFilter(input) {

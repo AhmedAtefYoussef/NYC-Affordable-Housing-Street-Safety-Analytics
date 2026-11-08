@@ -2,7 +2,6 @@
    Everything sits on the night ground; only the filters and the map are raised. Tokens only. */
 
 /* ---------- search ---------- */
-@property --ring { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 .control-block { max-width: 78rem; }
 .band-explore .chapter-head { margin-bottom: var(--space-6); }
 .search { max-width: 62rem; }
@@ -14,19 +13,26 @@
   position: relative; isolation: isolate; border-radius: 999px; border: 1px solid var(--color-line-strong);
   background: linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.03));
   box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0), 0 12px 60px -18px rgb(var(--gold-rgb) / 0.35);
-  transition: border-color var(--duration-base) ease-out, box-shadow var(--duration-slow) var(--ease-out), --lit 520ms var(--ease-out);
+  transition: border-color var(--duration-base) ease-out, box-shadow var(--duration-slow) var(--ease-out);
 }
-.search-box:hover { border-color: rgb(var(--gold-rgb) / 0.55); }
+.search-box:is(:where(.can-hover) :hover) { border-color: rgb(var(--gold-rgb) / 0.55); }
 .search-box:focus-within { border-color: transparent; box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.25), 0 14px 90px -12px rgb(var(--gold-rgb) / 0.55); }
 .search-ring {
   position: absolute; inset: -1px; z-index: 2; padding: 2px; border-radius: inherit; pointer-events: none; opacity: 0;
-  background: conic-gradient(from var(--ring), transparent 0 45%, rgb(var(--gold-rgb) / 0.25) 62%, var(--color-primary) 84%, var(--color-accent-strong) 94%, transparent 100%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
   transition: opacity var(--duration-base) ease-out;
 }
-.search-box:focus-within .search-ring { opacity: 1; animation: ring-turn 3.4s linear infinite; }
-@keyframes ring-turn { to { --ring: 360deg; } }
+/* The arc turns as a layer: a square of conic light, wider than the field's diagonal, rotated about the field's
+   centre under the ring's mask. Rotating it is the same picture as turning the gradient's start angle, but the
+   compositor does it, with no repaint per frame. */
+.search-ring::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 110%; aspect-ratio: 1; transform: translate(-50%, -50%);
+  background: conic-gradient(transparent 0 45%, rgb(var(--gold-rgb) / 0.25) 62%, var(--color-primary) 84%, var(--color-accent-strong) 94%, transparent 100%);
+}
+.search-box:focus-within .search-ring { opacity: 1; }
+.search-box:focus-within .search-ring::before { animation: ring-turn 3.4s linear infinite; }
+@keyframes ring-turn { from { transform: translate(-50%, -50%) rotate(0turn); } to { transform: translate(-50%, -50%) rotate(1turn); } }
 
 .search-input {
   display: block; width: 100%; min-height: 4.5rem; padding: 0 15.5rem 0 4.25rem; font: inherit; font-size: var(--text-md);
@@ -59,7 +65,7 @@
   visibility: hidden; opacity: 0; scale: 0.3; rotate: -90deg;
   transition: opacity var(--duration-base) ease-out, scale 480ms cubic-bezier(0.34, 1.56, 0.64, 1), rotate 480ms var(--ease-out), visibility 0s linear 480ms, background-color var(--duration-fast) ease-out, color var(--duration-fast) ease-out;
 }
-.search-clear:hover { background: var(--color-accent-soft); color: var(--color-primary); }
+.search-clear:is(:where(.can-hover) :hover) { background: var(--color-accent-soft); color: var(--color-primary); }
 .search-key {
   padding-left: var(--space-4); border-left: 1px solid var(--color-line-strong); color: var(--color-ink-2); font-size: var(--text-xs); line-height: 2rem; white-space: nowrap;
   visibility: hidden; opacity: 0; translate: 18px 0;
@@ -117,7 +123,7 @@
 /* Generate is the one primary action: larger, with a slow light that crosses it while idle, and a gentle pulse
    when the filters have changed since the report on screen. */
 .generate { min-height: 3.75rem; padding: 0 var(--space-7); font-size: var(--text-md); }
-.generate::before, .generate:is(:hover, :focus-visible)::before {
+.generate::before, .generate:is(:is(:where(.can-hover) :hover), :focus-visible)::before {
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; padding: 0; opacity: 1; -webkit-mask: none; mask: none;
   background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.4) 50%, transparent 62%);
   transform: translateX(-130%); animation: idle-light 5.5s ease-in-out 1.2s infinite;

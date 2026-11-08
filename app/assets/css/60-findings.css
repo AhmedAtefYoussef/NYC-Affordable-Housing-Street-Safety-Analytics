@@ -52,8 +52,8 @@
 .fd-toggle::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }   /* the whole row is the target */
 .fd-toggle:focus-visible { outline: none; }
 .fd-toggle:focus-visible::after { outline: 2px solid var(--color-primary); outline-offset: -4px; }
-.fd-toggle:hover, .fd-toggle:focus-visible { color: var(--color-primary); }
-.fd-summary:has(.fd-toggle:hover) .fd-key, .fd-summary:has(.fd-toggle:focus-visible) .fd-key { color: var(--color-primary); }
+.fd-toggle:is(:where(.can-hover) :hover), .fd-toggle:focus-visible { color: var(--color-primary); }
+.fd-summary:has(.fd-toggle:is(:where(.can-hover) :hover)) .fd-key, .fd-summary:has(.fd-toggle:focus-visible) .fd-key { color: var(--color-primary); }
 
 .fd-meta { grid-area: meta; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
 .fd-owner { color: var(--color-ink-3); font-size: var(--text-xs); }
@@ -96,7 +96,7 @@
 .fd-more { grid-area: more; justify-self: start; align-self: center; display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-ink-3); font-size: var(--text-sm); pointer-events: none; transition: color var(--duration-base) ease-out; }
 .fd-chevron { width: 0.55em; height: 0.55em; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-12%, -12%); transition: transform var(--duration-slow) var(--ease-out); }
 .fd-row.is-open .fd-chevron { transform: rotate(-135deg) translate(-12%, -12%); }
-.fd-summary:has(.fd-toggle:hover) .fd-more { color: var(--color-primary); }
+.fd-summary:has(.fd-toggle:is(:where(.can-hover) :hover)) .fd-more { color: var(--color-primary); }
 
 /* The detail opens in place: its track grows from 0fr to 1fr, and what is inside settles a moment later. */
 .fd-collapse { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows 640ms var(--ease-out), visibility 0s linear 640ms; }
@@ -161,10 +161,11 @@
 .md-tools { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
 
 /* The data journey: raw, cleaned, integrated. A line of light travels through the stages as the reader scrolls. */
-.md-journey { --p: 1; position: relative; margin-top: var(--space-7); }
-.md-track { position: absolute; left: 0; right: 0; top: 8px; height: 2px; border-radius: 1px; background: var(--color-line-strong); }
+.md-journey { position: relative; margin-top: var(--space-7); }
+.md-track { --p: 1; container-type: inline-size; position: absolute; left: 0; right: 0; top: 8px; height: 2px; border-radius: 1px; background: var(--color-line-strong); }
 .md-fill { position: absolute; inset: 0; border-radius: 1px; background: linear-gradient(90deg, transparent, var(--color-primary)); transform: scaleX(var(--p)); transform-origin: left; }
-.md-head { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--color-accent-strong); box-shadow: 0 0 22px 7px rgb(var(--gold-rgb) / 0.6); }
+/* The head travels by transform (100cqw is the track's width), so scrolling never re-lays out the page. */
+.md-head { position: absolute; top: 50%; left: 0; transform: translateX(calc(var(--p) * 100cqw)); width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--color-accent-strong); box-shadow: 0 0 22px 7px rgb(var(--gold-rgb) / 0.6); }
 .md-stages { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-7); }
 .md-stage { position: relative; padding-top: var(--space-6); transition: opacity 700ms var(--ease-out); }
 .md-journey.is-live .md-stage:not(.is-lit) { opacity: 0.75; }   /* dimmed, still readable: 4.5:1 or more */
@@ -193,7 +194,7 @@
   background: var(--color-sunken); border: 1px solid var(--color-line-strong); border-radius: 999px; transition: border-color var(--duration-fast) ease-out, box-shadow var(--duration-base) ease-out;
 }
 .md-input::placeholder { color: var(--color-ink-3); }
-.md-input:hover { border-color: var(--color-ink-3); }
+.md-input:is(:where(.can-hover) :hover) { border-color: var(--color-ink-3); }
 .md-input:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgb(var(--gold-rgb) / 0.25); }
 .md-clean-count { color: var(--color-ink-3); font-size: var(--text-sm); }
 .md-clean-count.is-tick { animation: arrive var(--duration-slow) var(--ease-out); }
