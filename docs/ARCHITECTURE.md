@@ -91,7 +91,7 @@ If `app/data/` is missing, the page shows a short "not ready" message and the se
 
 ## Tests
 
-`python -m pytest -q tests` runs 208 tests in two files; all pass.
+`python -m pytest -q tests` runs 820 tests in 14 files; the two files below check the data.
 
 - `tests/test_site.py` covers the query parser, the filters, conservation of totals across every table, the chart builders, the callbacks through Flask's test client, and agreement between the site's numbers and the exported results.
 - `tests/test_data_accuracy.py` recomputes the numbers the site shows from the two raw files with separate code (casualty totals, hour bands, factor groups, coordinates, nearest site within 250 m) and compares them with `app/data/` and with what the filter path returns. It reads the raw crash file once per run and skips when the raw files are absent. Where the site differs on purpose (a borough filled from a recovered ZIP, exact-distance ties between sites) the test asserts a bound, not an equality.
