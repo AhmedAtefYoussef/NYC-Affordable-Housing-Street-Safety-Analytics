@@ -14,7 +14,7 @@
 # %% [markdown]
 # ### 7.1 Shared statistics (also used by the website)
 #
-# The cell below is the file `app/stats.py`, pasted in when the notebook is built, so the
+# The cell below is the file `app/core/stats.py`, pasted in when the notebook is built, so the
 # notebook and the website compute every interval with the same code, seed and order of draws.
 #
 # - `bootstrap_ci` recomputes any statistic on `N_BOOT` resamples. With `clusters`, whole clusters
@@ -40,7 +40,7 @@
 #   counted once. `level_text` prints an interval level (95%, 98.75%, 99.44%).
 
 # %%
-# INLINE: app/stats.py
+# INLINE: app/core/stats.py
 
 # %% [markdown]
 # ### 7.2 Notebook-only constants and the rank correlation

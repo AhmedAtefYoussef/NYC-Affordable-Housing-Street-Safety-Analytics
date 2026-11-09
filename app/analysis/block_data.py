@@ -15,7 +15,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from app.data import POST_YEARS, PRE_YEARS, REL_YEARS, Store
+from app.core.data import POST_YEARS, PRE_YEARS, REL_YEARS, Store
 
 MAX_QUERY = 64
 MAX_SITE_RESULTS = 8

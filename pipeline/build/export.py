@@ -41,14 +41,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pipeline.build.checks import (BYTES_PER_MB, GRID_LAT_STEP, GRID_LON_STEP, MAX_TOTAL_MB, OUTPUT_FILES,
-                                   OUTPUT_TABLES, DataCheckError, require)
+from pipeline.build.checks import (
+    BYTES_PER_MB,
+    GRID_LAT_STEP,
+    GRID_LON_STEP,
+    MAX_TOTAL_MB,
+    OUTPUT_FILES,
+    OUTPUT_TABLES,
+    DataCheckError,
+    require,
+)
 from pipeline.build.frames import smallest_unsigned, write_table
 from pipeline.build.provenance import meta_document
 from pipeline.build.results import results_document
 from pipeline.build.runner import run_notebook_sections
-from pipeline.build.tables import (aggregate, crash_facts, event_site_table, housing_cube, near_kind_labels,
-                                   site_table)
+from pipeline.build.tables import aggregate, crash_facts, event_site_table, housing_cube, near_kind_labels, site_table
 from pipeline.paths import APP_DATA_DIR as OUTPUT_DIR
 from pipeline.paths import ROOT
 
@@ -170,8 +177,8 @@ def write_all(ns: dict, out_dir: Path, seconds: float, previous: dict | None) ->
 def check_against_notebook(ns: dict, data_dir: Path) -> None:
     """Recompute three headline numbers with the website's own code, reading `data_dir`, and compare with the notebook."""
     sys.path.insert(0, str(ROOT))
-    from app import data as site_data
-    from app.filters import make_filters
+    from app.core import data as site_data
+    from app.core.filters import make_filters
 
     site_data.load.cache_clear()
     try:

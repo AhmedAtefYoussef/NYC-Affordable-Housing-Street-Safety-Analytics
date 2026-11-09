@@ -10,8 +10,9 @@ from datetime import date
 from dash import Dash, html
 from flask import Response, jsonify, request
 
-from app import block_data, components
-from app.data import Store
+from app.analysis import block_data
+from app.core.data import Store
+from app.ui import components
 
 CACHE_SECONDS = 300
 CSV_NAME = "sites_on_crash_heavy_streets.csv"

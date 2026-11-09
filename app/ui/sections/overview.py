@@ -11,11 +11,12 @@ import gzip
 from dash import Dash, html
 from flask import Response, request
 
-from app import components, story_data
-from app.data import Store
-from app.filters import YEAR_END, YEAR_START, buffer_m
-from app.stats import NEUTRAL_PERCENTILE
-from app.story_text import signed
+from app.analysis import story_data
+from app.analysis.story_text import signed
+from app.core.data import Store
+from app.core.filters import YEAR_END, YEAR_START, buffer_m
+from app.core.stats import NEUTRAL_PERCENTILE
+from app.ui import components
 
 ONE_YEAR_S = 31_536_000
 

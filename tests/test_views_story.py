@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from app import story
-from app.data import load
-from app.sections import findings, method
-from app.story_text import number_word
+from app.analysis.story_text import number_word
+from app.core.data import load
+from app.ui import story
+from app.ui.sections import findings, method
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "app" / "assets"

@@ -9,11 +9,24 @@ import logging
 
 from dash import dcc, html
 
-from app import charts, components, story
-from app.data import Store
-from app.filters import (BOROUGHS, CONSTRUCTION_TYPES, DEFAULT_HARM, DEFAULT_SCOPE, FACTOR_GROUPS, HARM,
-                         HOUR_BAND_RANGES, HOUR_BANDS, SCOPE, SIZE_BANDS, YEAR_END, YEAR_START, YEARS)
-from app.theme import GRAPH_CONFIG
+from app.core.data import Store
+from app.core.filters import (
+    BOROUGHS,
+    CONSTRUCTION_TYPES,
+    DEFAULT_HARM,
+    DEFAULT_SCOPE,
+    FACTOR_GROUPS,
+    HARM,
+    HOUR_BAND_RANGES,
+    HOUR_BANDS,
+    SCOPE,
+    SIZE_BANDS,
+    YEAR_END,
+    YEAR_START,
+    YEARS,
+)
+from app.ui import charts, components, story
+from app.ui.theme import GRAPH_CONFIG
 
 log = logging.getLogger(__name__)
 

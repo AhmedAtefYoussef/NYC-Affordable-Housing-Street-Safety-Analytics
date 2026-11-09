@@ -10,8 +10,9 @@ import json
 from dash import Dash, dcc, html
 from flask import jsonify, request
 
-from app import components, scenarios
-from app.data import Store
+from app.analysis import scenarios
+from app.core.data import Store
+from app.ui import components
 
 CACHE_SECONDS = 300
 CONTROLS = [

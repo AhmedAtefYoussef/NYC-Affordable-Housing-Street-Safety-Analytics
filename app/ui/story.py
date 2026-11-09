@@ -10,13 +10,25 @@ import re
 
 from dash import dcc, html
 
-from app import charts
-from app.data import Store
-from app.filters import YEAR_END, YEAR_START, buffer_m
-from app.stats import NEUTRAL_PERCENTILE, level_text
-from app.story_text import (SAME_AS_ZERO, finding_extras, findings_lead, interval_level_text, interval_text,
-                            number_word, ordinal, reading_label, robustness_text, signed, unit_digits, zip_level_text)
-from app.theme import GRAPH_CONFIG
+from app.analysis.story_text import (
+    SAME_AS_ZERO,
+    finding_extras,
+    findings_lead,
+    interval_level_text,
+    interval_text,
+    number_word,
+    ordinal,
+    reading_label,
+    robustness_text,
+    signed,
+    unit_digits,
+    zip_level_text,
+)
+from app.core.data import Store
+from app.core.filters import YEAR_END, YEAR_START, buffer_m
+from app.core.stats import NEUTRAL_PERCENTILE, level_text
+from app.ui import charts
+from app.ui.theme import GRAPH_CONFIG
 
 
 def _graph(graph_id: str, figure, size_class: str) -> html.Div:

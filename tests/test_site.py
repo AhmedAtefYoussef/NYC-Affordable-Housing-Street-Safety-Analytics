@@ -20,13 +20,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from app import data, stats
-from app.callbacks import CONTROL_IDS, control_values
-from app.filters import BOROUGHS, FACTOR_GROUPS, HOUR_BANDS, YEAR_END, YEAR_START, from_dict, make_filters
-from app.report import CHART_KEYS, build_report
-from app.search import BOROUGH_WORDS, CONSTRUCTION_WORDS, FACTOR_WORDS, HOUR_WORDS, SIZE_WORDS, parse_query
-from app.story_text import signed
-
+from app.analysis.story_text import signed
+from app.core import data, stats
+from app.core.filters import BOROUGHS, FACTOR_GROUPS, HOUR_BANDS, YEAR_END, YEAR_START, from_dict, make_filters
+from app.core.search import BOROUGH_WORDS, CONSTRUCTION_WORDS, FACTOR_WORDS, HOUR_WORDS, SIZE_WORDS, parse_query
+from app.ui.callbacks import CONTROL_IDS, control_values
+from app.ui.report import CHART_KEYS, build_report
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -216,7 +215,7 @@ def _text(component) -> str:
 
 
 def test_story_quotes_the_exported_results(store):
-    from app import story
+    from app.ui import story
     questions = store.results["questions"]
     assert len(questions) == 10 and all(item["sentence"] for item in questions.values())
     hero = _text(story.hero(store))
@@ -334,7 +333,7 @@ def test_enter_in_the_search_box_generates_from_the_query(client):
 # Added coverage: a wider query list, conservation across filters, every chart builder on its own,
 # and the wiring of the Generate report button.
 # =============================================================================================
-from app import charts                                           # noqa: E402
+from app.ui import charts  # noqa: E402
 
 QUERY_TABLE = [
     # (query, values the parser must set, words it must report as not understood)
@@ -653,7 +652,7 @@ def test_new_york_county_is_manhattan_and_new_york_city_is_ignored():
 
 
 def test_reversed_years_are_normalised_and_the_report_says_so(store):
-    from app.filters import reversed_years_note
+    from app.core.filters import reversed_years_note
     filters = make_filters(year_from=2022, year_to=2018)
     assert (filters.year_from, filters.year_to) == (2018, 2022)
     assert reversed_years_note(2022, 2018) == "The years were entered as 2022 to 2018; they are read as 2018 to 2022."
@@ -749,7 +748,7 @@ def test_robustness_rows_cover_the_comparison_group_and_wide_clusters(store):
 
 
 def test_robustness_text_reads_from_the_rows_and_claims_no_fall(store):
-    from app.story_text import robustness_text
+    from app.analysis.story_text import robustness_text
     text = robustness_text(store)
     table, detail = store.robustness, store.results["detail"]
     cuts = table[table["check"] == detail["comparison_subset_check"]]
@@ -800,7 +799,7 @@ def test_rq7_reference_points_use_no_crash_after_the_baseline(store):
 
 
 def test_page_states_rq7_size_as_dependent_on_weighting(store):
-    from app import story
+    from app.ui import story
     questions, one_vote = store.results["questions"], store.results["detail"]["rq7"]["one_vote"]
     page = " ".join(_text(part(store)) for part in [story.hero, story.findings, story.impact])
     assert "largest effect" not in page and "far from zero" not in page
@@ -827,8 +826,8 @@ def test_zip_level_questions_are_kept_only_if_both_versions_exclude_zero(store):
 
 
 def test_rq1_says_did_not_improve_and_carries_no_strong_tag(store):
-    from app import story
-    from app.story_text import findings_lead, reading_label
+    from app.analysis.story_text import findings_lead, reading_label
+    from app.ui import story
     questions = store.results["questions"]
     text, css = reading_label(questions["RQ1"])
     assert "strong" not in css and "ZIP" in text
@@ -842,7 +841,7 @@ def test_rq1_says_did_not_improve_and_carries_no_strong_tag(store):
 
 
 def test_rq2_checks_are_beside_the_headline_on_the_page(store):
-    from app.story_text import finding_extras
+    from app.analysis.story_text import finding_extras
     checks, headline = store.results["detail"]["rq2_checks"], store.results["questions"]["RQ2"]
     assert checks["leave_one_zip_out"]["low"] <= headline["estimate"] <= checks["leave_one_zip_out"]["high"]
     assert checks["leave_one_zip_out"]["high"] == pytest.approx(checks["most_influential_zip"]["estimate"])
@@ -853,7 +852,7 @@ def test_rq2_checks_are_beside_the_headline_on_the_page(store):
 
 
 def test_widened_levels_are_printed_exactly_and_rest_on_enough_replicates(store):
-    from app import story
+    from app.ui import story
     assert stats.level_text(0.95) == "95%"
     assert stats.level_text(0.9875) == "98.75%"
     assert stats.level_text(1 - 0.05 / 9) == "99.44%"
@@ -865,10 +864,10 @@ def test_widened_levels_are_printed_exactly_and_rest_on_enough_replicates(store)
 
 
 def test_the_three_shared_constants_have_one_owner():
-    """A value changed in the notebook's Section 1 must survive the paste of app/stats.py into Section 7."""
+    """A value changed in the notebook's Section 1 must survive the paste of app/core/stats.py into Section 7."""
     assemble = importlib.import_module("pipeline.notebook.assemble")
-    pasted = assemble.inline_source("# INLINE: app/stats.py")
-    block = assemble.inline_source("# INLINE-CONSTANTS: app/stats.py")
+    pasted = assemble.inline_source("# INLINE: app/core/stats.py")
+    block = assemble.inline_source("# INLINE-CONSTANTS: app/core/stats.py")
     defined = {name: getattr(stats, name) for name in ["SEED", "N_BOOT", "CI_LEVEL"]}
     namespace = {}
     exec(block, namespace)
@@ -880,7 +879,7 @@ def test_the_three_shared_constants_have_one_owner():
     setup = (ROOT / "pipeline" / "notebook" / "sections" / "01_setup.py").read_text(encoding="utf-8")
     for name in defined:
         assert not re.search(rf"^{name} = ", setup, re.M), name
-    assert "# INLINE-CONSTANTS: app/stats.py" in setup
+    assert "# INLINE-CONSTANTS: app/core/stats.py" in setup
 
 
 def test_event_chart_note_points_to_the_joint_interval(store):

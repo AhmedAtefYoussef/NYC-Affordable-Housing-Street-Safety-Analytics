@@ -15,11 +15,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from app import stats
-from app import filters as filter_model
-from app.filters import Filters
+from app.core import filters as filter_model
+from app.core import stats
+from app.core.filters import Filters
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"      # app/data/
 REL_YEARS = [-3, -2, -1, 0, 1, 2, 3]        # replaced by meta.constants.event_window when load() runs
 PRE_YEARS, POST_YEARS = [-3, -2, -1], [1, 2, 3]
 MIN_GROUP_N = 30               # the notebook's rule: no statistic for a group smaller than this

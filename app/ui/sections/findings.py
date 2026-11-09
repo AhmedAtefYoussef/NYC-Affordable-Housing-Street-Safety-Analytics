@@ -7,11 +7,21 @@ from __future__ import annotations
 
 from dash import Dash, html
 
-from app import charts, components, story
-from app.data import Store
-from app.stats import level_text
-from app.story_text import (SAME_AS_ZERO, finding_extras, findings_lead, interval_level_text, interval_text,
-                            number_word, reading_label, robustness_text, signed, unit_digits)
+from app.analysis.story_text import (
+    SAME_AS_ZERO,
+    finding_extras,
+    findings_lead,
+    interval_level_text,
+    interval_text,
+    number_word,
+    reading_label,
+    robustness_text,
+    signed,
+    unit_digits,
+)
+from app.core.data import Store
+from app.core.stats import level_text
+from app.ui import charts, components, story
 
 ZIP_UNIT = "ZIP codes"
 

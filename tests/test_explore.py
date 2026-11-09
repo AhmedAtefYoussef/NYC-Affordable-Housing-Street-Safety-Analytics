@@ -8,8 +8,9 @@ import json
 import pytest
 from plotly.utils import PlotlyJSONEncoder
 
-from app import callbacks, charts, data, report
-from app.filters import make_filters
+from app.core import data
+from app.core.filters import make_filters
+from app.ui import callbacks, charts, report
 
 BOUND_KB = 260      # the default report was 449.5 KB before the map stopped carrying per-site hover strings
 
@@ -110,7 +111,7 @@ def test_the_csv_adds_up_to_the_headline(store):
 
 
 def test_the_download_callback_answers(client):
-    from app.callbacks import CSV_NAME
+    from app.ui.callbacks import CSV_NAME
     payload = {"output": "download.data", "outputs": {"id": "download", "property": "data"},
                "inputs": [{"id": "download-csv", "property": "n_clicks", "value": 1}],
                "state": [{"id": "report-filters", "property": "data", "value": make_filters().to_dict()}],

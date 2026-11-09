@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dash import Dash, html
 
-from app import story
-from app.data import Store
-from app.sections import block, explorer, findings, lab, method, overview
+from app.core.data import Store
+from app.ui import story
+from app.ui.sections import block, explorer, findings, lab, method, overview
 
 SECTIONS = [overview, block, lab, explorer, findings, method]
 NAV = [("story", "The story"), ("block", "Your block"), ("lab", "Test it"), ("explore", "Explore"),

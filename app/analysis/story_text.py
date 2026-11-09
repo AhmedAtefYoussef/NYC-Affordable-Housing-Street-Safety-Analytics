@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import re
 
-from app.data import Store
-from app.stats import level_text
-
+from app.core.data import Store
+from app.core.stats import level_text
 
 MINUS = "−"
 

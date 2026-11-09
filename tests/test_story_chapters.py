@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from app import story_data
-from app.data import load
-from app.sections import overview
-from app.stats import NEUTRAL_PERCENTILE
-from app.story_text import signed
+from app.analysis import story_data
+from app.analysis.story_text import signed
+from app.core.data import load
+from app.core.stats import NEUTRAL_PERCENTILE
+from app.ui.sections import overview
 
 ASSETS = Path(__file__).resolve().parents[1] / "app" / "assets"
 

@@ -12,9 +12,16 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from app.filters import baseline_text, buffer_m, pre_window_text
-from app.theme import (BOROUGH_COLOR, BOROUGH_SYMBOL, COLOR, CONSTRUCTION_COLOR, CONSTRUCTION_SYMBOL,
-                       SEQUENTIAL, plotly_template)
+from app.core.filters import baseline_text, buffer_m, pre_window_text
+from app.ui.theme import (
+    BOROUGH_COLOR,
+    BOROUGH_SYMBOL,
+    COLOR,
+    CONSTRUCTION_COLOR,
+    CONSTRUCTION_SYMBOL,
+    SEQUENTIAL,
+    plotly_template,
+)
 
 TEMPLATE = plotly_template()
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]

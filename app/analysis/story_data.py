@@ -14,8 +14,8 @@ from functools import lru_cache
 import numpy as np
 import pandas as pd
 
-from app import stats
-from app.data import NEW_CONSTRUCTION, POST_YEARS, PRE_YEARS, Store
+from app.core import stats
+from app.core.data import NEW_CONSTRUCTION, POST_YEARS, PRE_YEARS, Store
 
 STORY_URL = "/data/story.json"
 N_OUTCOMES = 50                # dots of the quantile dotplot (Fernandes et al. 2018)

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from dash import Dash, html
 
-from app import callbacks, layout as explorer_layout
-from app.data import Store
+from app.core.data import Store
+from app.ui import callbacks, explorer_layout
 
 
 def layout(store: Store) -> html.Section:

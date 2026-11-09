@@ -13,8 +13,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from app import stats
-from app.data import MIN_GROUP_N, NEW_CONSTRUCTION, POST_YEARS, PRE_YEARS, PRESERVATION, Store
+from app.core import stats
+from app.core.data import MIN_GROUP_N, NEW_CONSTRUCTION, POST_YEARS, PRE_YEARS, PRESERVATION, Store
 
 CACHE_SIZE = 512
 OUTCOME = "injury"

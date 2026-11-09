@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from app.data import load
-from app.sections import block, lab
+from app.core.data import load
+from app.ui.sections import block, lab
 
 ASSETS = Path(__file__).resolve().parents[1] / "app" / "assets"
 

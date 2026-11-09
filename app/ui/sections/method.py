@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from dash import Dash, dcc, html
 
-from app import charts, components, story
-from app.data import Store
+from app.core.data import Store
+from app.ui import charts, components, story
 
 REPO = "https://github.com/AhmedAtefYoussef/Data-Engineering-Visualization-Project"
 DOCS = f"{REPO}/blob/main/docs"

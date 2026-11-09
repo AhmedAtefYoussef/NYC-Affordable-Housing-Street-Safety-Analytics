@@ -28,10 +28,11 @@ import pandas as pd
 import pytest
 from plotly.utils import PlotlyJSONEncoder
 
-from app import callbacks, charts, data, report, story
-from app import filters as filters_module
-from app.filters import make_filters
-from app.search import parse_query
+from app.core import data
+from app.core import filters as filters_module
+from app.core.filters import make_filters
+from app.core.search import parse_query
+from app.ui import callbacks, charts, report, story
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_HOUSING = ROOT / "notebooks" / "housing_hg8x-zxpr.csv"
@@ -825,7 +826,7 @@ def test_assignment_requirements(store):
     from dash import dcc, html
 
     from app.app import app
-    from app.layout import build_layout
+    from app.ui.explorer_layout import build_layout
 
     page = build_layout(store)
     parts = list(_walk(page))

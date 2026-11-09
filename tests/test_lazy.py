@@ -7,7 +7,7 @@ import json
 import pytest
 
 from app import app as site
-from app import lazy
+from app.ui import lazy
 
 
 def _types(component) -> str:

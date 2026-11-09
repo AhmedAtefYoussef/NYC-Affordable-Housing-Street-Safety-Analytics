@@ -14,13 +14,24 @@ import numpy as np
 import plotly.graph_objects as go
 from dash import html
 
-from app import charts, components, data
-from app.data import MIN_GROUP_N, Store
-from app.filters import (Filters, buffer_m, chips, crash_scope_text, housing_kind_text, housing_scope_text,
-                         baseline_text, nearest_site_text, place_text, year_text)
-from app.story_text import signed
+from app.analysis.story_text import signed
+from app.core import data
+from app.core.data import MIN_GROUP_N, Store
+from app.core.filters import (
+    Filters,
+    baseline_text,
+    buffer_m,
+    chips,
+    crash_scope_text,
+    housing_kind_text,
+    housing_scope_text,
+    nearest_site_text,
+    place_text,
+    year_text,
+)
+from app.ui import charts, components
+from app.ui.grid import GEOJSON_URL, grid_url  # noqa: F401  (GEOJSON_URL: the route the map reads)
 
-GEOJSON_URL = "/data/crash-grid.geojson"      # the bare route; app.app imports it
 MIN_ZIPS_FOR_SCATTER = 5
 CHART_KEYS = ["map", "selection", "trend", "completions", "factors", "heatmap", "scatter", "event"]
 
@@ -32,12 +43,6 @@ class Panel:
     figure: go.Figure
     scope: list          # which filters apply and the n behind the chart
     note: list           # how to read it, and what it does not show
-
-
-def grid_url() -> str:
-    """The grid's URL with its content hash. A late import, because app.app imports this module."""
-    from app.app import grid_url as versioned
-    return versioned()
 
 
 def _scope(*parts) -> list:

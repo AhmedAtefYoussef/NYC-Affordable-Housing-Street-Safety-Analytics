@@ -9,8 +9,8 @@ import json
 import numpy as np
 import pytest
 
-from app import block_data
-from app.data import load
+from app.analysis import block_data
+from app.core.data import load
 
 
 @pytest.fixture(scope="module")
@@ -248,7 +248,7 @@ def test_the_search_route_survives_hostile_queries(client, query):
 
 
 def test_the_page_has_the_ranked_list_and_states_what_cannot_be_looked_up(store):
-    from app.sections import block
+    from app.ui.sections import block
     rendered = str(block.layout(store))
     assert "id='bk-ranked'" in rendered
     assert "bk-record" in rendered and "bk-search" in rendered
@@ -257,7 +257,7 @@ def test_the_page_has_the_ranked_list_and_states_what_cannot_be_looked_up(store)
 
 
 def test_the_baseline_is_never_blamed_on_the_building(store):
-    from app.sections import block
+    from app.ui.sections import block
     assert "not blame on the buildings" in str(block.layout(store))
 
 

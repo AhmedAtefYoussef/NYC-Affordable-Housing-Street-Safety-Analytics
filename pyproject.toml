@@ -28,7 +28,7 @@ line-length = 120
 extend-exclude = ["pipeline/notebook/sections", "notebooks"]
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F"]
+select = ["E4", "E7", "E9", "F", "I"]   # pyflakes, core pycodestyle errors and import order
 ignore = ["E731"]          # short lambdas bound to names are used on purpose in the tests
 
 [tool.coverage.run]

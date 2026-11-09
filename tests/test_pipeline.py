@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from app import data
+from app.core import data
 from pipeline import paths
 from pipeline.build import checks, export, provenance
 

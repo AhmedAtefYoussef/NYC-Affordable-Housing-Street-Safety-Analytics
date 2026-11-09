@@ -18,11 +18,11 @@ from urllib.parse import parse_qs, urlencode
 
 from dash import ALL, ClientsideFunction, Dash, Input, Output, State, ctx, dcc, html, no_update
 
-from app import report
-from app.data import Store
-from app.filters import Filters, from_dict, make_filters, reversed_years_note
-from app.layout import EXAMPLE_QUERIES, GENERATE_CLASS, search_hint
-from app.search import ParsedQuery, parse_query
+from app.core.data import Store
+from app.core.filters import Filters, from_dict, make_filters, reversed_years_note
+from app.core.search import ParsedQuery, parse_query
+from app.ui import report
+from app.ui.explorer_layout import EXAMPLE_QUERIES, GENERATE_CLASS, search_hint
 
 log = logging.getLogger(__name__)
 

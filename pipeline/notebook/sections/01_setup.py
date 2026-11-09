@@ -98,7 +98,7 @@ FIRST_TEST_YEAR = YEAR_END - N_TEST_YEARS + 1   # first held-out year
 BASELINE_YEARS = (YEAR_START, YEAR_START + EVENT_WINDOW - 1)   # first and last year of the pre-construction baseline
 
 # %%
-# INLINE-CONSTANTS: app/stats.py
+# INLINE-CONSTANTS: app/core/stats.py
 
 # %% [markdown]
 # ### 1.3 Plot style

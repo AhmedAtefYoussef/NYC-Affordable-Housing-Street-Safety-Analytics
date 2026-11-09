@@ -3,7 +3,7 @@
 Each section is a Python file in jupytext "percent" format (`# %%` code cells, `# %% [markdown]`
 text cells). Sections are joined in file-name order into one self-contained notebook. A code cell
 whose only line is `# INLINE: <repo path>` is replaced by that file's code, so the statistics in
-app/stats.py exist once and the notebook still imports nothing from the repository. A cell whose only
+app/core/stats.py exist once and the notebook still imports nothing from the repository. A cell whose only
 line is `# INLINE-CONSTANTS: <repo path>` takes that file's BEGIN/END SHARED CONSTANTS block, which the
 `# INLINE` paste then leaves out, so changing a value in the notebook's Section 1 reaches the statistics.
 
@@ -27,7 +27,7 @@ from nbclient import NotebookClient
 from nbclient.exceptions import CellExecutionError
 
 from pipeline.paths import NOTEBOOK_PATH as DEFAULT_OUT
-from pipeline.paths import RAW_DIR as NOTEBOOK_DIR      # execution directory: the two data files live here
+from pipeline.paths import RAW_DIR as NOTEBOOK_DIR  # execution directory: the two data files live here
 from pipeline.paths import ROOT
 from pipeline.paths import SECTIONS_DIR as SRC_DIR
 

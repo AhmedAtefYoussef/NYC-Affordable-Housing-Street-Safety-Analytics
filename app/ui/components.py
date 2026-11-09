@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dash import dcc, html
 
-from app.theme import GRAPH_CONFIG
+from app.ui.theme import GRAPH_CONFIG
 
 
 def section(section_id: str, title: str, lead: str | list | None, children: list, tint: str = "midnight",
