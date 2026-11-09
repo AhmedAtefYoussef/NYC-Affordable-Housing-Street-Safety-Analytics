@@ -1,7 +1,7 @@
 """Shared statistics: cluster bootstrap, difference-in-differences and the event-study profile.
 
 This file is the single home of this code. The notebook pastes it into Section 7 (see
-tools/assemble_notebook.py) and the website imports it, so both compute every interval with the
+pipeline/notebook/assemble.py) and the website imports it, so both compute every interval with the
 same resampling scheme, seed and order of random draws. Pure numpy and pandas.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-# BEGIN SHARED CONSTANTS: the one definition. tools/assemble_notebook.py pastes this block into Section 1.
+# BEGIN SHARED CONSTANTS: the one definition. pipeline/notebook/assemble.py pastes this block into Section 1.
 N_BOOT = 1000                 # bootstrap resamples behind every interval
 CI_LEVEL = 0.95
 SEED = 42                     # one seed, so every random step is repeatable

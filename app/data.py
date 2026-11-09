@@ -1,6 +1,6 @@
 """Load the exported tables once and answer every question the report asks of them.
 
-The files in app/data/ are written by tools/build_app_data.py from the notebook's own code.
+The files in app/data/ are written by `python -m pipeline data` from the notebook's own code.
 Everything here is a pure function of (`Store`, `Filters`) that returns a small frame or dict
 for one chart. The crash tables are pre-aggregated cubes held as numpy arrays, so a filter is
 a few boolean masks and one `bincount`; nothing larger than 625,000 rows is ever scanned.
@@ -79,7 +79,7 @@ EVENT_OUTCOME_PREFIXES = ["injury", "all", "pedcyc"]
 
 
 class DataContractError(ValueError):
-    """The files in app/data/ do not match what this code reads. Rebuild with tools/build_app_data.py."""
+    """The files in app/data/ do not match what this code reads. Rebuild with: python -m pipeline data."""
 
 
 def dtype_kind(dtype) -> str:
@@ -109,7 +109,7 @@ def expected_schema(name: str, event_window: int) -> dict[str, str]:
 
 def check_table(name: str, frame: pd.DataFrame, event_window: int, recorded: dict | None) -> None:
     """Raise DataContractError naming the table and column when a table is not what the code reads."""
-    fix = "rebuild with: python tools/build_app_data.py"
+    fix = "rebuild with: python -m pipeline data"
     expected = expected_schema(name, event_window)
     for column, kind in expected.items():
         if column not in frame.columns:
@@ -199,7 +199,7 @@ def load(data_dir: Path = DATA_DIR) -> Store:
     """
     global REL_YEARS
     if not (data_dir / "meta.json").exists():
-        raise FileNotFoundError(f"{data_dir} has no data. Run: python tools/build_app_data.py")
+        raise FileNotFoundError(f"{data_dir} has no data. Run: python -m pipeline data")
 
     meta = json.loads((data_dir / "meta.json").read_text(encoding="utf-8"))
     constants = meta["constants"]

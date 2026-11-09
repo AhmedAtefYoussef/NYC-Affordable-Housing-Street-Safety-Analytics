@@ -235,7 +235,7 @@ def build_layout(store: Store) -> html.Div:
 
 def missing_data_layout(message: str) -> html.Div:
     """Shown when app/data/ has not been built. The message and the build command go to the server log only."""
-    log.error("%s Build the data with: python tools/build_app_data.py", message)
+    log.error("%s Build the data with: python -m pipeline data", message)
     return html.Div(className="page", children=[html.Main(html.Section(className="hero", children=[
         html.H1("This page is not ready yet"),
         html.P("The data behind this page has not been loaded. Please try again later.", className="lead"),

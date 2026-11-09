@@ -23,7 +23,7 @@ HOUR_BANDS = ["Night", "Morning", "Afternoon", "Evening"]
 HOUR_BAND_RANGES = {"Night": "00:00 to 05:59", "Morning": "06:00 to 11:59",
                     "Afternoon": "12:00 to 17:59", "Evening": "18:00 to 23:59"}
 
-# Who was harmed. Each key names one count column of the crash tables (see tools/build_app_data.py).
+# Who was harmed. Each key names one count column of the crash tables (see pipeline/build/tables.py).
 # `noun` completes "N ..." in chart titles; `label` is the dropdown text.
 HARM = {
     "injury": {"label": "Anyone injured or killed", "noun": "injury crashes",

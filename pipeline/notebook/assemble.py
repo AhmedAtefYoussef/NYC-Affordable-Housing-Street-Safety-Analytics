@@ -1,4 +1,4 @@
-"""Assemble the notebook from the section sources in tools/notebook_src/ and optionally execute it.
+"""Assemble the notebook from the section sources in pipeline/notebook/sections/ and optionally execute it.
 
 Each section is a Python file in jupytext "percent" format (`# %%` code cells, `# %% [markdown]`
 text cells). Sections are joined in file-name order into one self-contained notebook. A code cell
@@ -7,9 +7,9 @@ app/stats.py exist once and the notebook still imports nothing from the reposito
 line is `# INLINE-CONSTANTS: <repo path>` takes that file's BEGIN/END SHARED CONSTANTS block, which the
 `# INLINE` paste then leaves out, so changing a value in the notebook's Section 1 reaches the statistics.
 
-    python tools/assemble_notebook.py --execute                       # full build into notebooks/
-    python tools/assemble_notebook.py --sections 01 02 04 --execute --out dev.ipynb --show 04
-    python tools/assemble_notebook.py --src some/dir --sections 01 02 --execute --out dev.ipynb
+    python -m pipeline notebook --execute                       # full build into notebooks/
+    python -m pipeline notebook --sections 01 02 04 --execute --out dev.ipynb --show 04
+    python -m pipeline notebook --src some/dir --sections 01 02 --execute --out dev.ipynb
 """
 from __future__ import annotations
 
@@ -26,10 +26,11 @@ import nbformat
 from nbclient import NotebookClient
 from nbclient.exceptions import CellExecutionError
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = ROOT / "tools" / "notebook_src"
-NOTEBOOK_DIR = ROOT / "notebooks"          # execution directory: the two data files live here
-DEFAULT_OUT = NOTEBOOK_DIR / "NYC_Housing_Safety.ipynb"
+from pipeline.paths import NOTEBOOK_PATH as DEFAULT_OUT
+from pipeline.paths import RAW_DIR as NOTEBOOK_DIR      # execution directory: the two data files live here
+from pipeline.paths import ROOT
+from pipeline.paths import SECTIONS_DIR as SRC_DIR
+
 INLINE = re.compile(r"^# INLINE: (\S+)\s*$")
 INLINE_CONSTANTS = re.compile(r"^# INLINE-CONSTANTS: (\S+)\s*$")
 CONSTANTS_BLOCK = re.compile(r"^# BEGIN SHARED CONSTANTS[^\n]*\n(.*?)^# END SHARED CONSTANTS[^\n]*\n", re.M | re.S)
@@ -127,15 +128,16 @@ def budget(notebook: nbformat.NotebookNode) -> None:
         print(f"  {name:<24} code {code:5d}  markdown {text:5d}")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(prog="python -m pipeline notebook", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--src", type=Path, default=SRC_DIR, help="folder with the section files")
     parser.add_argument("--sections", nargs="*", help="file-name prefixes to include (default: all)")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="output .ipynb path")
     parser.add_argument("--execute", action="store_true", help="run the notebook and store outputs")
     parser.add_argument("--show", nargs="*", default=[], help="print outputs of these section prefixes")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     notebook = build(section_files(args.sections, args.src))
     ok = True
@@ -155,6 +157,3 @@ def main() -> int:
     print(f"wrote {out} ({len(notebook.cells)} cells, {sum(c.cell_type == 'code' for c in notebook.cells)} code)")
     return 0 if ok else 1
 
-
-if __name__ == "__main__":
-    sys.exit(main())

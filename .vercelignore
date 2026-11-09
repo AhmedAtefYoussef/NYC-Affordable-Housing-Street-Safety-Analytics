@@ -1,7 +1,7 @@
 # Not needed by the deployed site. Leaving these out keeps the function small:
 # the notebook folder alone holds about 45 MB of data and stored outputs.
 notebooks/
-tools/
+pipeline/
 tests/
 docs/
 .claude/

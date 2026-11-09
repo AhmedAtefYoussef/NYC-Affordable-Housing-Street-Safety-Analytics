@@ -866,7 +866,7 @@ def test_widened_levels_are_printed_exactly_and_rest_on_enough_replicates(store)
 
 def test_the_three_shared_constants_have_one_owner():
     """A value changed in the notebook's Section 1 must survive the paste of app/stats.py into Section 7."""
-    assemble = importlib.import_module("tools.assemble_notebook")
+    assemble = importlib.import_module("pipeline.notebook.assemble")
     pasted = assemble.inline_source("# INLINE: app/stats.py")
     block = assemble.inline_source("# INLINE-CONSTANTS: app/stats.py")
     defined = {name: getattr(stats, name) for name in ["SEED", "N_BOOT", "CI_LEVEL"]}
@@ -877,7 +877,7 @@ def test_the_three_shared_constants_have_one_owner():
     exec(pasted, namespace)
     assert (namespace["SEED"], namespace["N_BOOT"], namespace["CI_LEVEL"]) == (7, 50, 0.90)
     assert namespace["bootstrap_ci"].__kwdefaults__ == {"clusters": None, "n_boot": 50, "seed": 7, "level": 0.90}
-    setup = (ROOT / "tools" / "notebook_src" / "01_setup.py").read_text(encoding="utf-8")
+    setup = (ROOT / "pipeline" / "notebook" / "sections" / "01_setup.py").read_text(encoding="utf-8")
     for name in defined:
         assert not re.search(rf"^{name} = ", setup, re.M), name
     assert "# INLINE-CONSTANTS: app/stats.py" in setup

@@ -25,7 +25,7 @@ target-version = "py312"
 line-length = 120
 # The notebook sections are fragments of one script that share a namespace, so names defined in an
 # earlier section look undefined and imports look unused when each file is read alone.
-extend-exclude = ["tools/notebook_src", "notebooks"]
+extend-exclude = ["pipeline/notebook/sections", "notebooks"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]

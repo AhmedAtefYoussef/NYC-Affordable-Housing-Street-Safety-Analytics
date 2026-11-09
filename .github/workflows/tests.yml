@@ -16,6 +16,6 @@ jobs:
           cache: pip
       # The site's packages plus the test and lint tools, scipy (the raw-data checks use it) and jupytext, nbformat, nbclient and pyarrow (the pipeline tests load the build script, which writes the parquet files with pyarrow); the other notebook-only libraries are not needed.
       - run: pip install -r requirements.txt pytest pytest-cov ruff scipy jupytext nbformat nbclient pyarrow
-      - run: ruff check app tests tools
+      - run: ruff check app tests pipeline
       # The floor sits just under the measured 98 percent; raise it when coverage rises.
       - run: python -m pytest -q tests --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=97
