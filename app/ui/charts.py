@@ -1,7 +1,7 @@
 """Figure builders. Each is a pure function of an already-filtered frame or dict.
 
 No function here touches the data files or Dash. Titles and the "filters and n" line live in
-the page (app/report.py), so every figure carries only marks, axes, legend and hover text.
+the page (app/ui/report.py), so every figure carries only marks, axes, legend and hover text.
 A selection with nothing to draw gets `empty_figure`, which keeps the chart's box and says why.
 """
 from __future__ import annotations

@@ -214,7 +214,7 @@ def explorer() -> html.Section:
                 html.H3("Report", className="visually-hidden"),
                 html.Div(id="report-header", className="report-header", role="status", **{"aria-live": "polite"}),
                 html.Div(id="report-tiles", className="figures"),
-                # The charts load Plotly; they are built when the reader comes near (app/lazy.py).
+                # The charts load Plotly; they are built when the reader comes near (app/ui/lazy.py).
                 html.Div(className="report-groups", **{"data-lazy": "lazy-report"},
                          children=[_group(slug, title, keys) for slug, title, keys in GROUPS]),
             ]),

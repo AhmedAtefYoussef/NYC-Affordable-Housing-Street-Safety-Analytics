@@ -205,7 +205,7 @@ def load(data_dir: Path = DATA_DIR) -> Store:
     constants = meta["constants"]
     if (constants["year_start"], constants["year_end"]) != (filter_model.YEAR_START, filter_model.YEAR_END):
         raise ValueError(f"app/data covers {constants['year_start']} to {constants['year_end']} but the "
-                         "filters are built for another window; rebuild the data or update app/filters.py")
+                         "filters are built for another window; rebuild the data or update app/core/filters.py")
     window = int(constants["event_window"])
     recorded = meta.get("schema", {})
 

@@ -1,5 +1,7 @@
 # Number changes
 
+Paths in entries before 9 November 2026 refer to the earlier layout: `tools/notebook_src/` is now `pipeline/notebook/sections/`, `tools/build_app_data.py` is `python -m pipeline data`, and `app/stats.py` is `app/core/stats.py`. The restructure of that date moved no number.
+
 ## Reproducible RQ7 reference points (November 2026)
 
 Rebuilding `app/data` from the raw files on another machine moved RQ7 slightly. The cause: many crashes share

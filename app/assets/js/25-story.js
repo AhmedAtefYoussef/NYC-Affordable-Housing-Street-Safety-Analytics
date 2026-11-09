@@ -1,6 +1,6 @@
 /* The story: as each chapter of the opening reaches the middle of the screen, the stage's points regroup into the
-   chart that chapter describes. A chapter names its arrangement in data-layout (app/sections/overview.py); the
-   arrangements are below, each a pure function of the story data (app/story_data.py) and the screen size.
+   chart that chapter describes. A chapter names its arrangement in data-layout (app/ui/sections/overview.py); the
+   arrangements are below, each a pure function of the story data (app/analysis/story_data.py) and the screen size.
 
      boroughs    five clusters, one per borough, new buildings at the core
      percentile  new buildings stacked by how crash-heavy their streets were before the project, 0 to 100

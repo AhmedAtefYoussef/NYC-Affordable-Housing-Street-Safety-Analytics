@@ -521,7 +521,7 @@ def test_generate_button_drives_every_chart_and_the_numbers(client):
     # the dropdowns are State, not Input: changing a dropdown must not redraw charts by itself
     inputs = {f"{i['id']}.{i['property']}" for i in spec["inputs"]}
     states = {f"{s['id']}.{s['property']}" for s in spec["state"]}
-    # lazy-report-ready: the report is drawn once its charts are on the page (app/lazy.py), not at page load
+    # lazy-report-ready: the report is drawn once its charts are on the page (app/ui/lazy.py), not at page load
     assert inputs == {"generate.n_clicks", "search.n_submit", "reset.n_clicks", "lazy-report-ready.data"}
     assert spec.get("prevent_initial_call") is True
     assert {f"{control}.value" for control in CONTROL_IDS} <= states and "search.value" in states

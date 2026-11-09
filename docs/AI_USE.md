@@ -63,6 +63,17 @@ How the second version was built:
 
 What the refactor changed in the method is listed in `docs/METHODOLOGY.md`: crashes at 0:00 flagged as unknown time, ZIP recovery tested on a holdout of whole locations, repeated buildings counted once, resampling of linked site clusters in RQ7, and robustness rows for the 2019 cohort and one building per project.
 
+### Repository restructure (9 November 2026)
+
+A final session reorganised the repository without changing any result. The project lead's request, as given:
+
+> Comprehensively analyze the attached project description and begin refining the project according to the following;
+> 1. Upgrade the repository architectural layout, enhancing the pipeline's modularity and organization. Also, emphasize both maintainability and extensibility aspects in order to enhance & facilitate the process of refactoring and extending the pipeline with additional features in the future.
+> 2. Clean the repository end to end, identify any stale work-trees and clean them. Basically, I want the repository to be clean and has strong foundations.
+> 3. Upgrade the README file to become more documentative and demonstrate the repository accurately & precisely. Refine the README file so it becomes even more attractive for Job recruiters.
+
+The session asked four questions before starting (how deep to restructure, what to do with the orphaned worktrees and the old remote branches, how to deliver) and then: moved `tools/` into the `pipeline/` package with one command line, split the data build by stage, split `app/` into the `core`, `analysis` and `ui` layers with a test that enforces their order, removed eleven stale worktrees and the merged branches, and rewrote the README and `docs/ARCHITECTURE.md`. A full data rebuild reproduced every table exactly. Paths written earlier in this file (`tools/notebook_src/`, `tools/assemble_notebook.py`, `tools/build_app_data.py`, `app/stats.py`) are the layout of the time; they are now `pipeline/notebook/sections/`, `python -m pipeline notebook`, `python -m pipeline data` and `app/core/stats.py`.
+
 ## 3. The shared brief for the section authors
 
 Each notebook section was drafted by a separate assistant from one shared brief. The passages that set the content of the notebook are quoted here. Passages that only name working folders and build commands are left out.
@@ -106,7 +117,7 @@ None. The notebook and the website make no model calls.
 ## 6. What this process does not cover
 
 - Load testing of the deployed site. It runs at https://data-engineering-visualization-proj-three.vercel.app/. A cold start was measured in the deployed configuration (about a second and about 300 MB) and the interactive paths were timed in-process, but no test has measured how it behaves under many simultaneous visitors.
-- The stored outputs of the committed notebook are a snapshot. Rebuild with `python tools/assemble_notebook.py --execute` after any change to a section file, and rebuild the website data with `python tools/build_app_data.py`.
+- The stored outputs of the committed notebook are a snapshot. Rebuild with `python -m pipeline notebook --execute` after any change to a section file, and rebuild the website data with `python -m pipeline data`.
 - Whether each student has read and can explain their parts. The code and text were drafted by AI assistants under the team's direction, and members remain responsible for understanding, running and checking what they submit. Nothing in this repository records that any student has done the checks below.
 
 ### Checks each member should do before submission
@@ -117,6 +128,6 @@ None. The notebook and the website make no model calls.
 | M2 Nour Mostafa Aly | Read the ball tree code and its brute-force check, and the RQ3 code in Section 8.3 with the difference-in-differences function in Section 7. Check the event-study card on the site against the notebook. |
 | M3 Yahia Mohamed | Read the cluster and screen logic (5.4) and explain how the screen changes the sample. Try ten phrases in the search box and confirm that search only sets filters. Read Section 9. |
 | M4 Moaz Ahmed | Read the ZIP recovery and its holdout validation (6.1), and the RQ7 code in Section 8.7 and why its benchmark is street points and not other housing. Check the map and heat map at phone width. Confirm `pyproject.toml`, `vercel.json`, `.vercelignore` and `requirements.txt`. |
-| M5 Yassin Fady | Run `python tools/build_app_data.py` and `python -m pytest -q tests`. Read the cleaning log and Sections 10 to 14 for numbers that do not match the executed outputs. Read this file for accuracy. Deploy on Vercel and test the address. |
+| M5 Yassin Fady | Run `python -m pipeline data` and `python -m pytest -q tests`. Read the cleaning log and Sections 10 to 14 for numbers that do not match the executed outputs. Read this file for accuracy. Deploy on Vercel and test the address. |
 
 Each member should also keep a short list of the commits or pull requests they wrote (with links), the research questions they own and can explain, and anything they ran or checked. Questions in the evaluation can target any part of the notebook, so every member should be able to explain the cleaning and integration decisions, including those they did not write.

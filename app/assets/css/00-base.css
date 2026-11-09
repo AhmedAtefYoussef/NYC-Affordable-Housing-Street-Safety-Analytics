@@ -1,4 +1,4 @@
-/* Base: every colour, size, space, radius, easing and duration comes from the tokens that app/theme.py writes
+/* Base: every colour, size, space, radius, easing and duration comes from the tokens that app/ui/theme.py writes
    into the page head. Files load in name order: base, page, components, dropdown, then one file per part. */
 
 @font-face { font-family: "Hanken Grotesk Fallback"; src: local("Arial"), local("Helvetica Neue"), local("Liberation Sans"); size-adjust: 100%; ascent-override: 96%; descent-override: 26%; line-gap-override: 0%; }

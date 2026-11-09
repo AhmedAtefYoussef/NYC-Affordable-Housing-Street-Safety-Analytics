@@ -111,7 +111,7 @@ def _joined(store: Store) -> html.Div:
         components.surface([
             html.H4("Why we count injury crashes"),
             html.Div(components.graph("md-reporting", charts.reporting_break_figure(store.city_year), size_class="graph-small"),
-                     **{"data-lazy": "lazy-reporting"}),   # built when the reader comes near (app/lazy.py)
+                     **{"data-lazy": "lazy-reporting"}),   # built when the reader comes near (app/ui/lazy.py)
             html.P(story.reporting_note(store), className="md-note"),
         ], class_name="md-chart lift"),
     ])

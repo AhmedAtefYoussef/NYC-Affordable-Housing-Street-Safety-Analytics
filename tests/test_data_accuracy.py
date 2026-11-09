@@ -572,7 +572,7 @@ def test_story_numbers_come_from_the_data(store):
 
 
 def test_filter_constants_equal_the_exported_metadata(store):
-    """The lists typed into app/filters.py are the ones the data was built with."""
+    """The lists typed into app/core/filters.py are the ones the data was built with."""
     dimensions, constants = store.meta["dimensions"], store.meta["constants"]
     assert filters_module.BOROUGHS == dimensions["boroughs"]
     assert filters_module.CONSTRUCTION_TYPES == dimensions["construction_types"]

@@ -228,7 +228,7 @@ def register(app: Dash, store: Store) -> None:
                  (Output("report", "className"), "report is-loading", "report")],
         prevent_initial_call=True)
     def generate(_clicks, _submits, _reset, _ready, *state):
-        """Redraw the figures and every chart but the last. Runs once its charts are on the page (app/lazy.py: the
+        """Redraw the figures and every chart but the last. Runs once its charts are on the page (app/ui/lazy.py: the
         reader came near; from the address if it names filters), and on Generate, Enter and Reset."""
         *values, text, search = state
         filters, query, notes = request_filters(ctx.triggered_id, values, text if isinstance(text, str) else "", search)

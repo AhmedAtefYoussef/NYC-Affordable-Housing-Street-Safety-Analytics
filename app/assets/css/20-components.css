@@ -1,4 +1,4 @@
-/* Shared components, matching app/components.py. */
+/* Shared components, matching app/ui/components.py. */
 
 /* Raised area lit by the pointer. 00-motion.js eases --mx and --my after the pointer (it trails, never snaps) and
    sets --lit from 0 to 1 as the pointer arrives or leaves. Two lights: a wide warm wash with a small bright core
@@ -206,7 +206,7 @@ details[open] > summary::before { transform: translateY(-30%) rotate(45deg); }
 details[open] > .table-wrap { animation: arrive var(--duration-base) var(--ease-out); }
 @media (max-width: 640px) { .picker-trigger { padding-inline: var(--space-3); gap: var(--space-2); } }
 
-/* A part built when the reader comes near (app/lazy.py): an empty frame of about the height it will have, so the
+/* A part built when the reader comes near (app/ui/lazy.py): an empty frame of about the height it will have, so the
    page does not jump when it arrives, with a slow shimmer while it is on its way. */
 .lazy-frame { position: relative; overflow: hidden; height: var(--lazy-h, 20rem); border-radius: var(--radius); }
 .lazy-frame::before { content: ""; position: absolute; top: 0; bottom: 0; left: -300%; width: 400%; background: linear-gradient(90deg, rgb(255 255 255 / 0.015) 25%, rgb(255 255 255 / 0.04) 50%, rgb(255 255 255 / 0.015) 75%) 0 0 / 50% 100%; animation: sweep 2.4s linear infinite; }

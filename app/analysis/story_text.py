@@ -1,6 +1,6 @@
 """Sentences for the story sections: number formatting and the text built from results.json.
 
-Kept apart from app/story.py, which lays the sections out, so wording and layout change separately.
+Kept apart from app/ui/story.py, which lays the sections out, so wording and layout change separately.
 """
 from __future__ import annotations
 

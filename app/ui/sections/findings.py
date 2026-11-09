@@ -1,6 +1,6 @@
 """Findings: the ten research questions as one tall composition that opens row by row. Ids here start with `fd-`.
 
-Every number is read from the store and every sentence comes from app/story_text.py, so a changed result changes the
+Every number is read from the store and every sentence comes from app/analysis/story_text.py, so a changed result changes the
 page. assets/js/50-findings.js opens a row in place, filters the rows, and follows a #rq7 style link.
 """
 from __future__ import annotations

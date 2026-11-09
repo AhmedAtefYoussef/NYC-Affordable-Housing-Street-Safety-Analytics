@@ -12,7 +12,7 @@
       the box at once as a preview, fading in; the typing pauses until the pointer leaves.
    5. A link that names filters scrolls to the report once.
 
-   1 and 2 are Dash clientside functions (window.dash_clientside.explore), registered in app/callbacks.py. */
+   1 and 2 are Dash clientside functions (window.dash_clientside.explore), registered in app/ui/callbacks.py. */
 (function () {
   "use strict";
 

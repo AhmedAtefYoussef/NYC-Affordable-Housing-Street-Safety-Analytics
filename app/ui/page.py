@@ -1,4 +1,4 @@
-"""The whole page, top to bottom. One continuous page: each part is a module in app/sections/ with
+"""The whole page, top to bottom. One continuous page: each part is a module in app/ui/sections/ with
 `layout(store)` and `register(app, store)`, and owns its id prefix."""
 from __future__ import annotations
 
