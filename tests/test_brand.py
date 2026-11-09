@@ -5,7 +5,7 @@ from __future__ import annotations
 import struct
 from pathlib import Path
 
-from app import page
+from app.ui import page
 
 ASSETS = Path(__file__).resolve().parents[1] / "app" / "assets"
 

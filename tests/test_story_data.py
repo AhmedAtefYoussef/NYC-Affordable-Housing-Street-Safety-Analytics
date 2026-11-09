@@ -8,10 +8,12 @@ import re
 import numpy as np
 import pytest
 
-from app import page, stats, story_data
-from app.data import load
-from app.sections import overview
-from app.story_text import signed
+from app.analysis import story_data
+from app.analysis.story_text import signed
+from app.core import stats
+from app.core.data import load
+from app.ui import page
+from app.ui.sections import overview
 
 MAX_GZIP_BYTES = 150 * 1024
 HISTOGRAM_BIN = 5

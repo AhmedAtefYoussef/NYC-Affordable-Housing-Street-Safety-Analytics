@@ -1,6 +1,6 @@
 # Methodology and answers
 
-This file summarizes the methods of the notebook `notebooks/NYC_Housing_Safety.ipynb` and answers the ten research questions in plain words. The notebook has the code, the reasoning for each choice and the executed outputs. The website in `app/` uses the same code through `tools/build_app_data.py`, so both show the same numbers. Where this file and the notebook differ, the notebook is right. Every estimate below is read from `app/data/results.json`, `app/data/robustness.parquet` or the executed notebook.
+This file summarizes the methods of the notebook `notebooks/NYC_Housing_Safety.ipynb` and answers the ten research questions in plain words. The notebook has the code, the reasoning for each choice and the executed outputs. The website in `app/` uses the same code through the data build (`python -m pipeline data`), so both show the same numbers. Where this file and the notebook differ, the notebook is right. Every estimate below is read from `app/data/results.json`, `app/data/robustness.parquet` or the executed notebook.
 
 ## 1. Question and design
 
@@ -61,7 +61,7 @@ Every crash is also tagged with its nearest site within 250 m (or none). The web
 
 ## 5. Statistics
 
-All intervals are percentile intervals with seed 42, at 95% from 1,000 bootstrap resamples, except the tables of RQ8 and RQ10, which use 5,000 resamples because their widened intervals rest on thin tails. Samples smaller than 30 get no statistic. The bootstrap, the difference-in-differences and the event-study profile live once, in `app/stats.py`. The notebook pastes that file into Section 7 and the website imports it, so both draw the same resamples. The seed, the number of resamples and the interval level are defined once in that file and pasted into Section 1, so changing a value there reaches every later section.
+All intervals are percentile intervals with seed 42, at 95% from 1,000 bootstrap resamples, except the tables of RQ8 and RQ10, which use 5,000 resamples because their widened intervals rest on thin tails. Samples smaller than 30 get no statistic. The bootstrap, the difference-in-differences and the event-study profile live once, in `app/core/stats.py`. The notebook pastes that file into Section 7 and the website imports it, so both draw the same resamples. The seed, the number of resamples and the interval level are defined once in that file and pasted into Section 1, so changing a value there reaches every later section.
 
 - Before and after at the same places is measured as the log of after over before, with 0.5 added to both counts so that sites with a zero count stay in. A difference of logs treats a fall from 4 to 2 crashes like a fall from 40 to 20, and a few busy intersections cannot decide the answer. Results are reported as percent changes.
 - Crash reporting changed during the window, so a site's own before and after difference mixes the building with the citywide change. The difference-in-differences subtracts the mean log ratio at comparison sites over the same years from the mean at treated sites. Comparisons are made inside strata (cohort), and the strata are averaged with the number of treated sites as weights. The estimate is an association under the assumption that both groups would otherwise have changed alike.

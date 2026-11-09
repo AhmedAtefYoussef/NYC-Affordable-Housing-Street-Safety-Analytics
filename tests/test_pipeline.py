@@ -4,31 +4,20 @@ from __future__ import annotations
 
 import ast
 import hashlib
-import importlib.util
 import json
 import shutil
-import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from app import data
+from app.core import data
+from pipeline import paths
+from pipeline.build import checks, export, provenance
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILD_PATH = ROOT / "tools" / "build_app_data.py"
-REBUILD = "python tools/build_app_data.py"
-
-
-def _load_build_module():
-    sys.path.insert(0, str(ROOT / "tools"))
-    spec = importlib.util.spec_from_file_location("build_app_data_under_test", BUILD_PATH)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-build = _load_build_module()
+BUILD_DIR = ROOT / "pipeline" / "build"
+REBUILD = paths.REBUILD_COMMAND
 
 
 @pytest.fixture
@@ -113,9 +102,9 @@ def test_rel_years_follow_the_event_window():
 
 
 def test_expected_schema_covers_every_exported_table():
-    assert set(data.EXPECTED_SCHEMA) == set(build.OUTPUT_TABLES)
+    assert set(data.EXPECTED_SCHEMA) == set(checks.OUTPUT_TABLES)
     meta = json.loads((data.DATA_DIR / "meta.json").read_text(encoding="utf-8"))
-    assert set(meta["schema"]) == set(build.OUTPUT_TABLES)
+    assert set(meta["schema"]) == set(checks.OUTPUT_TABLES)
     window = meta["constants"]["event_window"]
     for name, recorded in meta["schema"].items():
         assert set(data.expected_schema(name, window)) == set(recorded), name
@@ -141,11 +130,11 @@ def test_failed_write_leaves_old_output_untouched(tmp_path, monkeypatch):
 
     def broken(ns, folder, seconds, previous):
         (folder / "sites.parquet").write_bytes(b"half written")
-        raise build.DataCheckError("conservation failed")
+        raise checks.DataCheckError("conservation failed")
 
-    monkeypatch.setattr(build, "write_all", broken)
-    with pytest.raises(build.DataCheckError, match="conservation"):
-        build.export({}, out, 1.0)
+    monkeypatch.setattr(export, "write_all", broken)
+    with pytest.raises(checks.DataCheckError, match="conservation"):
+        export.export({}, out, 1.0)
     assert _digests(out) == before
     assert _no_staging_left(tmp_path)
 
@@ -158,12 +147,12 @@ def test_failed_website_check_leaves_old_output_untouched(tmp_path, monkeypatch)
         (folder / "meta.json").write_text('{"new": true}', encoding="utf-8")
 
     def failing_check(ns, folder):
-        raise build.DataCheckError("website number differs from the notebook")
+        raise checks.DataCheckError("website number differs from the notebook")
 
-    monkeypatch.setattr(build, "write_all", fine)
-    monkeypatch.setattr(build, "check_against_notebook", failing_check)
-    with pytest.raises(build.DataCheckError, match="website number"):
-        build.export({}, out, 1.0)
+    monkeypatch.setattr(export, "write_all", fine)
+    monkeypatch.setattr(export, "check_against_notebook", failing_check)
+    with pytest.raises(checks.DataCheckError, match="website number"):
+        export.export({}, out, 1.0)
     assert _digests(out) == before
     assert _no_staging_left(tmp_path)
 
@@ -175,9 +164,9 @@ def test_successful_export_replaces_the_old_output(tmp_path, monkeypatch):
         assert previous == {"old": True}              # the old meta.json is read before the swap
         (folder / "meta.json").write_text('{"new": true}', encoding="utf-8")
 
-    monkeypatch.setattr(build, "write_all", fine)
-    monkeypatch.setattr(build, "check_against_notebook", lambda ns, folder: None)
-    build.export({}, out, 1.0)
+    monkeypatch.setattr(export, "write_all", fine)
+    monkeypatch.setattr(export, "check_against_notebook", lambda ns, folder: None)
+    export.export({}, out, 1.0)
     assert json.loads((out / "meta.json").read_text(encoding="utf-8")) == {"new": True}
     assert not (out / "sites.parquet").exists()
     assert _no_staging_left(tmp_path)
@@ -187,27 +176,28 @@ def test_output_folder_with_foreign_files_is_refused(tmp_path, monkeypatch):
     out = _old_output(tmp_path / "out")
     (out / "vercel.json").write_text("{}", encoding="utf-8")
     before = _digests(out)
-    monkeypatch.setattr(build, "write_all", lambda *args: pytest.fail("must refuse before writing"))
-    with pytest.raises(build.DataCheckError, match="vercel.json"):
-        build.export({}, out, 1.0)
+    monkeypatch.setattr(export, "write_all", lambda *args: pytest.fail("must refuse before writing"))
+    with pytest.raises(checks.DataCheckError, match="vercel.json"):
+        export.export({}, out, 1.0)
     assert _digests(out) == before
 
 
 def test_relative_out_is_resolved_before_comparing(tmp_path, monkeypatch):
     out = _old_output(tmp_path / "out")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(build, "write_all", lambda ns, folder, seconds, previous: (folder / "meta.json").write_text("{}"))
-    monkeypatch.setattr(build, "check_against_notebook", lambda ns, folder: None)
-    build.export({}, Path("out"), 1.0)                 # a relative path reaches the same folder
+    monkeypatch.setattr(export, "write_all", lambda ns, folder, seconds, previous: (folder / "meta.json").write_text("{}"))
+    monkeypatch.setattr(export, "check_against_notebook", lambda ns, folder: None)
+    export.export({}, Path("out"), 1.0)                 # a relative path reaches the same folder
     assert (out / "meta.json").read_text() == "{}"
 
 
 def test_checks_are_not_assert_statements():
     """`python -O` removes assert, so no data check may rely on it."""
-    tree = ast.parse(BUILD_PATH.read_text(encoding="utf-8"))
-    assert [node.lineno for node in ast.walk(tree) if isinstance(node, ast.Assert)] == []
-    with pytest.raises(build.DataCheckError):
-        build.require(False, "a failed check raises")
+    for path in sorted(BUILD_DIR.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        assert [node.lineno for node in ast.walk(tree) if isinstance(node, ast.Assert)] == [], path.name
+    with pytest.raises(checks.DataCheckError):
+        checks.require(False, "a failed check raises")
 
 
 # --------------------------------------------------------------------------------------------
@@ -224,30 +214,32 @@ def test_meta_records_what_the_data_was_built_from():
 
 def test_sources_unchanged_since_the_last_build():
     meta = json.loads((data.DATA_DIR / "meta.json").read_text(encoding="utf-8"))
-    assert build.source_hash() == meta["source_sha256"], (
-        "tools/notebook_src/* or app/stats.py changed since app/data was built, so the exported numbers may be "
+    assert provenance.source_hash() == meta["source_sha256"], (
+        "pipeline/notebook/sections/* or the statistics module changed since app/data was built, so the exported numbers may be "
         f"stale. Rebuild with: {REBUILD}")
 
 
 def test_raw_files_unchanged_since_the_last_build():
     meta = json.loads((data.DATA_DIR / "meta.json").read_text(encoding="utf-8"))
     for name, recorded in meta["raw_sha256"].items():
-        assert build.file_sha256(ROOT / "notebooks" / name) == recorded, (
+        assert provenance.file_sha256(ROOT / "notebooks" / name) == recorded, (
             f"notebooks/{name} differs from the file app/data was built from. Rebuild with: {REBUILD}")
 
 
 def _tree(root: Path, text: str) -> None:
-    (root / "tools" / "notebook_src").mkdir(parents=True)
-    (root / "app").mkdir()
-    (root / "tools" / "notebook_src" / "01_a.py").write_bytes(text.encode())
-    (root / "app" / "stats.py").write_bytes(b"x = 1\n")
+    sections = root / paths.SECTIONS_DIR.relative_to(paths.ROOT)
+    stats = root / paths.STATS_MODULE.relative_to(paths.ROOT)
+    sections.mkdir(parents=True)
+    stats.parent.mkdir(parents=True, exist_ok=True)
+    (sections / "01_a.py").write_bytes(text.encode())
+    stats.write_bytes(b"x = 1\n")
 
 
 def test_source_hash_follows_content_not_line_endings_or_dates(tmp_path):
     _tree(tmp_path / "lf", "a = 1\nb = 2\n")
     _tree(tmp_path / "crlf", "a = 1\r\nb = 2\r\n")
     _tree(tmp_path / "changed", "a = 1\nb = 3\n")
-    assert build.source_hash(tmp_path / "lf") == build.source_hash(tmp_path / "crlf")
-    assert build.source_hash(tmp_path / "lf") != build.source_hash(tmp_path / "changed")
-    (tmp_path / "lf" / "app" / "stats.py").write_bytes(b"x = 2\n")
-    assert build.source_hash(tmp_path / "lf") != build.source_hash(tmp_path / "crlf")
+    assert provenance.source_hash(tmp_path / "lf") == provenance.source_hash(tmp_path / "crlf")
+    assert provenance.source_hash(tmp_path / "lf") != provenance.source_hash(tmp_path / "changed")
+    (tmp_path / "lf" / paths.STATS_MODULE.relative_to(paths.ROOT)).write_bytes(b"x = 2\n")
+    assert provenance.source_hash(tmp_path / "lf") != provenance.source_hash(tmp_path / "crlf")

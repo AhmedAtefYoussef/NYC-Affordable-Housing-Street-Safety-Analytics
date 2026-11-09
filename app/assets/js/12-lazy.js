@@ -1,4 +1,4 @@
-/* Parts of the page built when the reader comes near them (app/lazy.py). Each element with data-lazy="<name>" is
+/* Parts of the page built when the reader comes near them (app/ui/lazy.py). Each element with data-lazy="<name>" is
    an empty frame until it is within about two screens of the window; then the store "<name>-seen" is set and Dash
    returns the real content. The report is also built the moment the reader touches the Explore controls, so its
    charts always exist before Generate runs. */

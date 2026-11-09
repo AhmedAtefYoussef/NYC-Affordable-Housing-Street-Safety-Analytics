@@ -9,8 +9,8 @@ import time
 import numpy as np
 import pytest
 
-from app import scenarios
-from app.data import MIN_GROUP_N, load
+from app.analysis import scenarios
+from app.core.data import MIN_GROUP_N, load
 
 
 @pytest.fixture(scope="module")
@@ -134,7 +134,7 @@ def test_random_specs_always_answer_and_stay_json_safe(store):
 
 
 def test_unsigned_counts_do_not_wrap(store):
-    from app.scenarios import _columns
+    from app.analysis.scenarios import _columns
     columns = _columns(store)
     table = store.event_sites
     wide = sum(table[f"injury_{year:+d}"].to_numpy(dtype=np.int64) for year in (-3, -2, -1))
@@ -183,7 +183,7 @@ def test_every_published_number_is_finite(store):
 
 
 def test_the_page_names_each_control_and_never_shows_a_generate_button(store):
-    from app.sections import lab as view
+    from app.ui.sections import lab as view
     rendered = str(view.layout(store))
     for key in scenarios.DEFAULT_SPEC:
         assert f"sc-{key}" in rendered

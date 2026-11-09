@@ -1,5 +1,5 @@
 """The charts load Plotly (about 4.5 MB), so they are not in the page the browser first receives: each part marked
-data-lazy is an empty frame until the reader comes near (app/lazy.py), and the full page still checks the callbacks."""
+data-lazy is an empty frame until the reader comes near (app/ui/lazy.py), and the full page still checks the callbacks."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ import json
 import pytest
 
 from app import app as site
-from app import lazy
+from app.ui import lazy
 
 
 def _types(component) -> str:

@@ -1,10 +1,10 @@
-"""Direct tests of app/stats.py on small inputs whose answers are known in advance."""
+"""Direct tests of app/core/stats.py on small inputs whose answers are known in advance."""
 import math
 
 import numpy as np
 import pytest
 
-from app import stats
+from app.core import stats
 
 
 def _constructed_sites(n_per_arm: int = 40, effect: float = 0.4):

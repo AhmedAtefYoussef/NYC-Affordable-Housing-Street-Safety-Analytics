@@ -2,32 +2,31 @@
 
 The process loads the exported tables once, builds the layout and registers the callbacks. The
 default report and the map grid are built on the first request that needs them, so a cold start
-stays short. It reads
-only app/data/ and imports nothing from the pipeline, the analysis package or the root config.
+stays short. It reads only app/data/ and imports nothing from the pipeline or the notebook.
+
+Layers: app.core (data, filters, search, statistics) <- app.analysis (numbers and text for the page)
+<- app.ui (Dash layout, charts, callbacks) <- this module. tests/test_architecture.py enforces the order.
 """
 from __future__ import annotations
 
-import functools
-import gzip
-import hashlib
-import json
 import logging
 import os
 
 import dash
-from flask import Response, request
+from flask import Response
 
-from app import data, lazy, page, story_data
-from app.filters import YEAR_END, YEAR_START
-from app.layout import missing_data_layout
-from app.report import GEOJSON_URL
-from app.theme import COLOR, FONTS_URL, css_variables
+from app.analysis import story_data
+from app.core import data
+from app.core.filters import YEAR_END, YEAR_START
+from app.ui import lazy, page
+from app.ui.explorer_layout import missing_data_layout
+from app.ui.grid import GEOJSON_URL, grid_url, serve_grid  # noqa: F401  (grid_url: public entry point)
+from app.ui.theme import COLOR, FONTS_URL, css_variables
 
 TITLE = "Affordable housing and injury crashes in NYC"
 DESCRIPTION = ("An interactive report on affordable-housing buildings and police crash reports in "
                f"New York City, {YEAR_START} to {YEAR_END}.")
 DEFAULT_PORT = 8050
-GEOJSON_MAX_AGE_S = 31_536_000      # only for the versioned URL; the bare URL is revalidated every time
 
 # One policy for every response. 'unsafe-inline' scripts and styles are needed because Dash writes its
 # config and renderer into the page; MapLibre (inside Plotly) starts its tile workers from blob: URLs and
@@ -95,47 +94,6 @@ app.index_string = """<!DOCTYPE html>
 </html>"""
 
 
-_grid_source: list = []        # holds the grid builder once the data is loaded
-
-
-def grid_url() -> str:
-    """The one place callers get the map grid's URL: it carries a hash of the content, so a rebuilt grid
-    is never read from an old cache. Without data it is the bare route."""
-    if not _grid_source:
-        return GEOJSON_URL
-    return f"{GEOJSON_URL}?v={_grid_source[0]()[2]}"
-
-
-def _serve_grid(store):
-    """A view that serves the map grid, gzip-compressed. Built on first use.
-
-    The bare URL is revalidated on every load (ETag), so it can never paint counts on stale cells;
-    the same URL with `?v=<hash>` is immutable for a year because the hash names the content.
-    """
-
-    @functools.cache
-    def encoded() -> tuple[bytes, bytes, str]:
-        payload = json.dumps(data.grid_geojson(store), separators=(",", ":")).encode("utf-8")
-        digest = hashlib.sha256(payload).hexdigest()[:12]
-        return payload, gzip.compress(payload, compresslevel=6), digest
-
-    def crash_grid() -> Response:
-        payload, compressed, digest = encoded()
-        accepts_gzip = "gzip" in request.headers.get("Accept-Encoding", "")
-        response = Response(compressed if accepts_gzip else payload, mimetype="application/geo+json")
-        if accepts_gzip:
-            response.headers["Content-Encoding"] = "gzip"
-        immutable = request.args.get("v") == digest
-        response.headers["Cache-Control"] = (f"public, max-age={GEOJSON_MAX_AGE_S}, immutable" if immutable
-                                             else "no-cache")
-        response.headers["Vary"] = "Accept-Encoding"
-        response.set_etag(digest)
-        return response.make_conditional(request)
-
-    _grid_source[:] = [encoded]
-    return crash_grid
-
-
 try:
     STORE = data.load()
 except FileNotFoundError as error:
@@ -148,7 +106,7 @@ else:
     app.validation_layout = dash.html.Div([full_page, *lazy_stores])   # callbacks are checked against every part
     page.register(app, STORE)
     lazy.register(app, deferred)
-    server.add_url_rule(GEOJSON_URL, "crash_grid", _serve_grid(STORE))
+    server.add_url_rule(GEOJSON_URL, "crash_grid", serve_grid(STORE))
     # The opening's points are fetched as soon as the page head is read, not once Dash has mounted the stage, so the
     # city lights up sooner. The stage's own fetch() asks for the same versioned URL and is answered from this one.
     app.index_string = app.index_string.replace(

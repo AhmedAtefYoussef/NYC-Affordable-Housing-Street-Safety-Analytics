@@ -5,7 +5,15 @@ import itertools
 
 import pytest
 
-from app.filters import DEFAULT_HARM, DEFAULT_SCOPE, YEAR_END, YEAR_START, from_dict, make_filters, reversed_years_note
+from app.core.filters import (
+    DEFAULT_HARM,
+    DEFAULT_SCOPE,
+    YEAR_END,
+    YEAR_START,
+    from_dict,
+    make_filters,
+    reversed_years_note,
+)
 
 HOSTILE = [
     float("inf"), float("-inf"), float("nan"), 10**400, -(10**400), 2019.7, True, False, 0, -1, 5,
@@ -80,7 +88,7 @@ def _assert_secure(reply):
 
 
 def test_every_kind_of_response_carries_the_security_headers(client):
-    from app.app import grid_url
+    from app.ui.grid import grid_url
     for path in ("/", "/_dash-layout", "/_dash-dependencies", "/assets/site.css", grid_url(),
                  "/data/crash-grid.geojson", "/no-such-page"):
         _assert_secure(client.get(path))
@@ -94,7 +102,7 @@ def test_csp_allows_the_hosts_the_page_loads(client):
 
 
 def test_the_grid_url_is_versioned_and_immutable_but_the_bare_url_revalidates(client):
-    from app.app import grid_url
+    from app.ui.grid import grid_url
     url = grid_url()
     assert url.startswith("/data/crash-grid.geojson?v=") and len(url.split("=")[1]) == 12
     versioned = client.get(url)
