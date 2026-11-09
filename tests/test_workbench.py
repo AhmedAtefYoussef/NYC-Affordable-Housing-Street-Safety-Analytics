@@ -77,6 +77,48 @@ def test_the_generate_overlay_animates_no_full_screen_mask():
     assert "--hole" not in css and "backdrop-filter" not in css
 
 
+def test_both_light_renderers_carry_the_light_kit_into_their_worker():
+    kit = (ASSETS / "js" / "05-light.js").read_text(encoding="utf-8")
+    assert "function lightKit(scope)" in kit and "NYC.lightKit = lightKit" in kit
+    for name, renderer in (("20-stage.js", "stageRenderer"), ("40-generate.js", "reportRenderer")):
+        script = (ASSETS / "js" / name).read_text(encoding="utf-8")
+        assert f'"(" + NYC.lightKit + ")(self);(" + {renderer} + ")(self);"' in script, name
+        assert "NYC.lightKit(local)" in script, name     # the on-page fallback gets the same kit
+
+
+def test_both_renderers_draw_their_lights_on_the_graphics_processor_with_a_2d_fallback():
+    """Every light in one WebGL2 call, motion blur computed per pixel; the 2D canvas still draws where WebGL2 is missing."""
+    kit = (ASSETS / "js" / "05-light.js").read_text(encoding="utf-8")
+    assert 'getContext("webgl2"' in kit and "drawArraysInstanced" in kit and "webglcontextlost" in kit
+    assert "if (!gl) { return null; }" in kit
+    stage = (ASSETS / "js" / "20-stage.js").read_text(encoding="utf-8")
+    report = (ASSETS / "js" / "40-generate.js").read_text(encoding="utf-8")
+    assert "Light.Particles(canvas" in stage and "Light.drawLight(context" in stage
+    assert "Light.Particles(message.particles" in report and "Light.drawLight(context" in report
+    # Both canvases are handed to the worker together.
+    assert "[target, overlayTarget]" in stage and "[target, lightsTarget]" in report
+
+
+def test_the_generate_sequence_keeps_its_exits():
+    script = (ASSETS / "js" / "40-generate.js").read_text(encoding="utf-8")
+    assert "NYC.reducedMotion()" in script and '"Escape"' in script and "MAX_WAIT_MS" in script
+
+
+def test_the_light_version_keeps_blur_filters_off():
+    css = (ASSETS / "css" / "70-motion.css").read_text(encoding="utf-8")
+    assert ".is-lite :is(" in css and "filter: none !important" in css
+
+
+
+def test_the_report_hand_off_moves_only_opacity_and_transform():
+    """The report comes into focus on one composited layer: a blur over the whole report re-layers the page every frame."""
+    import re
+    css = (ASSETS / "css" / "35-generate.css").read_text(encoding="utf-8")
+    pull = re.search(r"@keyframes pull-back \{(.*?)\}\s*\}", css, re.S)
+    assert pull and "filter" not in pull.group(1)
+    assert 'body[data-report="fresh"] .card' not in css
+
+
 def test_the_tools_open_no_native_menus():
     """Every choice is drawn in the page's own style: no <select>, whose list the operating system draws."""
     tools = (ASSETS / "js" / "45-tools.js").read_text(encoding="utf-8")

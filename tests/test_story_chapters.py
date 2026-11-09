@@ -104,3 +104,18 @@ def test_no_style_sheet_keeps_the_old_yellow():
     for path in (ASSETS / "css").glob("*.css"):
         source = path.read_text(encoding="utf-8")
         assert "244 185 66" not in source and "f4b942" not in source.lower(), path.name
+
+
+def test_a_chart_never_recolours_a_building_to_mean_something_else():
+    """Gold is new construction and teal preservation in every chart: the funnel colours each building by its own
+    type, and the percentile chart (new buildings only) is all gold."""
+    script = (ASSETS / "js" / "25-story.js").read_text(encoding="utf-8")
+    funnel = script[script.index("Stage.layouts.funnel"):script.index("Stage.layouts.outcomes")]
+    percentile = script[script.index("Stage.layouts.percentile"):script.index("Stage.layouts.funnel")]
+    assert "out.tone[site] = data.new[site] ? NEW : PRESERVATION" in funnel
+    assert "out.tone[site] = NEW;" in percentile and "PRESERVATION" not in percentile
+
+
+def test_the_report_sequence_draws_no_words_on_its_canvas():
+    script = (ASSETS / "js" / "40-generate.js").read_text(encoding="utf-8")
+    assert "fillText" not in script

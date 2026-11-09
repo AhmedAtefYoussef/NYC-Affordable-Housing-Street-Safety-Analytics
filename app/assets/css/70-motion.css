@@ -27,6 +27,10 @@
 /* Scroll-lit words: the script sets each word's opacity from the scroll position. */
 .sw { transition: opacity 180ms linear; }
 
+/* While the page scrolls, nothing answers the pointer: the browser then skips finding what is under it on every
+   frame of the scroll (set by 00-motion.js, and cleared a moment after the scroll stops). */
+.is-scrolling body { pointer-events: none; }
+
 /* The light version (phones, touch screens, small processors; set by 00-motion.js): the same fades and rises, with
    no blur filters and no background blur over the moving canvas, which cost a phone most of its frame budget. */
 .is-lite :is(.kw-i, .lift, .od-strip, .step-card, .bk-enter) { filter: none !important; }

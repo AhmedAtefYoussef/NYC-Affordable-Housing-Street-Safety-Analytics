@@ -56,7 +56,7 @@
      throughout. Not held for a reader who asked for less motion, nor for a link that opens elsewhere on the page
      (a #part or a query), and never for long: a timer lets the words in whatever happens, OPENING_WAIT_MS after load
      if the city never starts (no data, no canvas), or OPENING_MAX_MS after it starts (NYC.openingStarted()). */
-  var OPENING_WAIT_MS = 5000, OPENING_MAX_MS = 3600, openingTimer = 0;
+  var OPENING_WAIT_MS = 5000, OPENING_MAX_MS = 5200, openingTimer = 0;   // the full opening runs about 4.3 s
   var opening = !motion.matches && !window.location.hash && !window.location.search, openingQueue = [];
   document.documentElement.classList.toggle("is-opening", opening);
   NYC.isOpening = function () { return opening; };
@@ -334,6 +334,14 @@
     ticking = true;
     window.requestAnimationFrame(update);
   }
+  /* While the page scrolls, html.is-scrolling turns the pointer off (70-motion.css), so the browser does not look for
+     what is under the pointer on every frame; it comes back SCROLL_SETTLE_MS after the last scroll event. */
+  var SCROLL_SETTLE_MS = 140, scrollingTimer = 0, scrollingNow = false;
+  function markScrolling() {
+    if (!scrollingNow) { scrollingNow = true; document.documentElement.classList.add("is-scrolling"); }
+    window.clearTimeout(scrollingTimer);
+    scrollingTimer = window.setTimeout(function () { scrollingNow = false; document.documentElement.classList.remove("is-scrolling"); }, SCROLL_SETTLE_MS);
+  }
   NYC.onMount(".hero", function (hero) { if (opening) { hero.setAttribute("aria-busy", "true"); } });
   NYC.onMount("[data-tint]", function (section) { sections.push(section); onScroll(); });
   NYC.onMount(".nav-link", function (link) { links.push(link); });
@@ -341,6 +349,7 @@
   function start() {
     new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", markScrolling, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     scan();
     onScroll();

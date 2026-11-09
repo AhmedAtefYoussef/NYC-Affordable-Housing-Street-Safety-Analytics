@@ -5,13 +5,17 @@
      boroughs    five clusters, one per borough, new buildings at the core
      percentile  new buildings stacked by how crash-heavy their streets were before the project, 0 to 100
      funnel      every building, grouped by how far it gets through the fair test
-     outcomes    fifty dots, each one fiftieth of the resampled answers, against zero */
+     outcomes    fifty dots, each one fiftieth of the resampled answers, against zero
+
+   Every point keeps the meaning the legend gives it in every chart: gold is a new building, teal a preservation
+   project, white gold a building lit for the chart's point. A chart dims or brightens points; it never recolours
+   them to mean something else. */
 (function () {
   "use strict";
 
   var NYC = window.NYC, Stage = NYC.Stage;
   var INK = "#f6f2e9", INK2 = "#c9cad6", INK3 = "#a9aec3", GOLD = "#ecca85", CORAL = "#ffab95", RULE = "rgba(169,174,195,0.35)";
-  var PRESERVATION = 0, NEW = 1, CRASH = 2, BRIGHT = 3, GOLDEN = 2.399963;
+  var PRESERVATION = 0, NEW = 1, CRASH = 2, GOLDEN = 2.399963;
 
   function arrays(n) { return { x: new Float32Array(n), y: new Float32Array(n), alpha: new Float32Array(n), size: new Float32Array(n), tone: new Uint8Array(n) }; }
   function fmt(value) { return Math.round(value).toLocaleString("en-US"); }
@@ -71,8 +75,9 @@
       list.forEach(function (site, j) {
         var column = j % columns, row = Math.floor(j / columns);
         out.x[site] = r.x0 + b * binW + (column + 0.5) * pitch; out.y[site] = base - (row + 0.5) * pitch;
+        // Every point here is a new building, so every point is gold; those above the typical street burn brighter.
         var above = b >= BINS / 2;
-        out.alpha[site] = above ? 1 : 0.6; out.size[site] = Math.max(4, Math.min(8, pitch * 2.8)); out.tone[site] = above ? NEW : PRESERVATION;
+        out.alpha[site] = above ? 1 : 0.55; out.size[site] = Math.max(4, Math.min(8, pitch * 2.8)); out.tone[site] = NEW;
       });
     });
     var mean = sum / Math.max(1, count), x50 = r.x0 + width * 0.5, xMean = r.x0 + width * mean / 100, top = base - height - 8;
@@ -95,6 +100,8 @@
     var data = stage.data, n = data.n, out = arrays(n), r = Stage.region(stage), i, g;
     var groups = [[], [], [], []], funnel = data.funnel;
     for (i = 0; i < n; i++) { groups[data.stage[i]].push(i); }
+    // Within a band, new buildings first, then preservation: the two colours read as two blocks, not as noise.
+    groups.forEach(function (list) { list.sort(function (a, c) { return data.new[c] - data.new[a] || a - c; }); });
     var texts = [fmt(funnel[0] - funnel[1]) + " not completed in a usable year",
                  fmt(funnel[1] - funnel[2]) + " completed, failed the screen",
                  fmt(funnel[2] - funnel[3]) + " passed, preservation",
@@ -107,12 +114,13 @@
       if (bands.reduce(function (a, c) { return a + c; }, 0) + GAP * 3 <= height) { break; }
     }
     var total = bands.reduce(function (a, c) { return a + c; }, 0) + GAP * 3, y = r.y0 + (height - total) / 2, marks = [];
-    var shade = [0.32, 0.55, 0.85, 1], tones = [PRESERVATION, PRESERVATION, NEW, BRIGHT];
+    var shade = [0.32, 0.55, 0.85, 1];
     for (g = 0; g < 4; g++) {
       var list = groups[g], rows = Math.ceil(list.length / columns), inner = rows * pitch, top = y + (bands[g] - inner) / 2;
       list.forEach(function (site, j) {
         out.x[site] = gridX + (j % columns + 0.5) * pitch; out.y[site] = top + (Math.floor(j / columns) + 0.5) * pitch;
-        out.alpha[site] = shade[g]; out.size[site] = g === 3 ? Math.max(5, pitch * 2.8) : Math.max(2.6, pitch * 1.9); out.tone[site] = tones[g];
+        out.alpha[site] = shade[g]; out.size[site] = g === 3 ? Math.max(5, pitch * 2.8) : Math.max(2.6, pitch * 1.9);
+        out.tone[site] = data.new[site] ? NEW : PRESERVATION;     // each building in its own colour, at every stage
       });
       var middle = y + bands[g] / 2, words = texts[g].split(" "), figure = words.shift();
       marks.push({ t: "text", x: gridX - 14, y: middle + 2, text: figure, font: "display", size: r.wide ? 22 : 15, color: g === 3 ? GOLD : INK, align: "right" });
@@ -131,15 +139,27 @@
     var low = Math.min(-5, Math.floor(Math.min.apply(null, values) / 5) * 5), high = Math.max(5, Math.ceil(Math.max.apply(null, values) / 5) * 5);
     var width = r.x1 - r.x0, base = r.y0 + (r.y1 - r.y0) * 0.78;
     function at(value) { return r.x0 + (value - low) / (high - low) * width; }
-    var dot = Math.min(width / 22, (r.y1 - r.y0) * 0.09), stacks = {};
-    values.forEach(function (value, k) {
-      var site = chosen[k];
-      if (site == null) { return; }
-      var bin = Math.round((at(value) - r.x0) / dot), row = stacks[bin] = (stacks[bin] || 0) + 1;
-      out.x[site] = r.x0 + bin * dot; out.y[site] = base - (row - 0.5) * dot * 0.92;
-      out.alpha[site] = 1; out.size[site] = dot * 1.5; out.tone[site] = value < 0 ? NEW : CRASH;
+    var dot = Math.min(width / 22, (r.y1 - r.y0) * 0.09), stacks = [], tallest = 1;
+    // A dot plot (Wilkinson's): in value order, each answer joins the open stack while it lies within one dot of the
+    // stack's first value, and otherwise opens a new one. Each stack stands at the mean of its own answers, so every
+    // stack sits where its values are, and stacks never lean into one another.
+    values.map(function (value, k) { return { value: value, site: chosen[k] }; })
+      .filter(function (item) { return item.site != null; })
+      .sort(function (a, c) { return a.value - c.value; })
+      .forEach(function (item) {
+        var x = at(item.value), open = stacks[stacks.length - 1];
+        if (open && x - open.start < dot * 0.92) { open.items.push(item); open.sum += x; }
+        else { stacks.push({ start: x, sum: x, items: [item] }); }
+      });
+    stacks.forEach(function (stack) {
+      var x = stack.sum / stack.items.length;
+      tallest = Math.max(tallest, stack.items.length);
+      stack.items.forEach(function (item, row) {
+        out.x[item.site] = x; out.y[item.site] = base - (row + 0.5) * dot * 0.92;
+        out.alpha[item.site] = 1; out.size[item.site] = dot * 1.5; out.tone[item.site] = item.value < 0 ? NEW : CRASH;
+      });
     });
-    var tallest = Object.keys(stacks).reduce(function (a, c) { return Math.max(a, stacks[c]); }, 1), top = base - tallest * dot * 0.92 - 18;
+    var top = base - tallest * dot * 0.92 - 18;
     var marks = [{ t: "line", x1: r.x0, y1: base + 6, x2: r.x1, y2: base + 6, color: RULE }];
     for (var tick = low; tick <= high; tick += 5) {
       marks.push({ t: "line", x1: at(tick), y1: base + 6, x2: at(tick), y2: base + 11, color: RULE });

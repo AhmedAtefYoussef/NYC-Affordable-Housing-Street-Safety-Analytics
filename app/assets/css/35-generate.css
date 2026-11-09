@@ -1,12 +1,15 @@
-/* The Generate report sequence: the screen goes dark, the city is rebuilt from its own buildings and measured, then
-   it rushes outward as a circle opens from the centre onto the finished report. Built by assets/js/40-generate.js. */
+/* The Generate report sequence: the screen goes dark, the city is gathered borough by borough from its own
+   buildings, woven and measured, then the camera flies into it and the report comes into focus behind it.
+   Built by assets/js/40-generate.js; the canvas draws (and thins) its own ground. */
 .gen {
   position: fixed; inset: 0; z-index: 100; display: grid; align-items: end; justify-items: center; color: var(--color-ink);
   background: radial-gradient(ellipse 70% 60% at 50% 42%, #10162b 0%, var(--color-page) 70%);
   animation: gen-in 420ms var(--ease-out) both; contain: strict;
 }
-/* With the canvas drawing, the canvas paints the ground and opens the circle itself; the element's own ground goes. */
+/* With the canvas drawing, the canvas paints the ground and thins it itself; the element's own ground goes. */
 .gen.is-canvas { background: none; }
+/* During the exit the embers drift over the report; the page underneath can already be scrolled and clicked. */
+.gen.is-out { pointer-events: none; }
 .gen:not(.is-canvas).is-out { animation: gen-fade 400ms ease-out forwards; }
 @keyframes gen-fade { to { opacity: 0; } }
 @keyframes gen-in { from { opacity: 0; } }
@@ -14,7 +17,10 @@
 .gen-panel { position: relative; display: grid; justify-items: center; gap: var(--space-2); width: min(34rem, 88vw); margin-bottom: clamp(1.5rem, 6vh, 4rem); padding: var(--space-5) var(--space-6); text-align: center; pointer-events: none;
   background: rgb(12 16 30 / 0.88); border: 1px solid rgb(var(--gold-rgb) / 0.18); border-radius: calc(var(--radius) + 6px);
   box-shadow: 0 30px 80px -30px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.05); animation: settle 700ms var(--ease-out) 150ms backwards; }
-.gen.is-out .gen-panel { opacity: 0; transform: translateY(12px); transition: opacity 300ms ease-out, transform 400ms var(--ease-out); }
+.gen.is-out .gen-panel { opacity: 0; transform: translateY(16px) scale(0.98); transition: opacity 320ms ease-out, transform 480ms var(--ease-out); }
+/* Once the report is ready, a quiet line says it can be skipped. */
+.gen-hint { height: 0; overflow: hidden; color: var(--color-ink-3); font-size: var(--text-xs); letter-spacing: 0.04em; opacity: 0; transition: opacity var(--duration-slow) ease-out; }
+.gen.is-ready .gen-hint { height: auto; opacity: 1; }
 .gen-kicker { color: var(--color-accent); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
 .gen-title { font-family: var(--font-display); font-size: clamp(1.75rem, 1.2rem + 1.6vw, var(--text-xl)); font-variation-settings: "opsz" 36; font-weight: 500; line-height: 1.1; }
 .gen-line { min-height: 1.6em; color: var(--color-ink-2); font-size: var(--text-sm); }
@@ -24,6 +30,12 @@
 /* Reduced motion: a plain notice with a bar, and no travel. */
 @media (prefers-reduced-motion: reduce) { .gen.is-out { display: none; } }
 
-/* What arrives after the circle opens: each part of the report settles in turn. */
-body[data-report="fresh"] :is(.tile, .figures .metric) { animation: settle 800ms var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 90ms); }
-body[data-report="fresh"] .card { animation: settle 900ms var(--ease-out) backwards; animation-delay: calc(240ms + var(--i, 0) * 80ms); }
+/* What the shockwave reveals: the report, which zooms out from close up to its own size, about the point the wave
+   starts from, while the wave crosses the screen (it starts with the burst, BURST_FROM in 40-generate.js, 1150 ms);
+   then its few figures settle in turn. The wave itself does the revealing, so the report never fades; only its
+   transform moves, on a single layer prepared before the exit starts, so the browser composites the hand-off without
+   repainting or re-layering anything: no blur over the report and no animation per chart. */
+body[data-report="fresh"] #report { animation: pull-back 1500ms cubic-bezier(0.16, 1, 0.3, 1) 1100ms backwards; transform-origin: 50% 42vh; }
+@keyframes pull-back { from { transform: scale(1.1); } }
+.gen-ready-layer #report { will-change: transform; }
+body[data-report="fresh"] #report-tiles :is(.tile, .metric) { animation: settle 1000ms var(--ease-out) backwards; animation-delay: calc(1500ms + var(--i, 0) * 110ms); }
