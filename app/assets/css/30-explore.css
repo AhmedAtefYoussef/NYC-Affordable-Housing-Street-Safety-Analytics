@@ -121,16 +121,20 @@
 .stale-hint:not(:empty) { animation: arrive var(--duration-base) var(--ease-out); }
 
 /* Generate is the one primary action: larger, with a slow light that crosses it while idle, and a gentle pulse
-   when the filters have changed since the report on screen. */
+   when the filters have changed since the report on screen. While a report is being built the idle light pauses
+   and fades out instead of vanishing mid-sweep. 42-generate-light.js runs the pulse itself where it can (so it fades
+   in and glides back to rest instead of snapping), crossfades the label and plays the recharge after Reset; the
+   pulse below is for a page without that script. */
 .generate { min-height: 3.75rem; padding: 0 var(--space-7); font-size: var(--text-md); }
 .generate::before, .generate:is(:is(:where(.can-hover) :hover), :focus-visible)::before {
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; padding: 0; opacity: 1; -webkit-mask: none; mask: none;
   background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.4) 50%, transparent 62%);
-  transform: translateX(-130%); animation: idle-light 5.5s ease-in-out 1.2s infinite;
+  transform: translateX(-130%); animation: idle-light 5.5s ease-in-out 1.2s infinite; transition: opacity 420ms ease-out;
 }
-.generate:disabled::before { animation: none; }
+.generate:disabled::before { animation-play-state: paused; opacity: 0; }
 @keyframes idle-light { 0%, 55% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
 .generate.is-stale { animation: stale-pulse 2.2s ease-in-out infinite; }
+.has-generate-light .generate.is-stale { animation: none; }
 @keyframes stale-pulse {
   0%, 100% { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), 0 0 0 0 rgb(var(--gold-rgb) / 0.55), 0 8px 40px -12px rgb(var(--gold-rgb) / 0.55); }
   50% { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), 0 0 0 14px rgb(var(--gold-rgb) / 0), 0 8px 54px -8px rgb(var(--gold-rgb) / 0.8); }
