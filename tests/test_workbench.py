@@ -2,6 +2,7 @@
 panel holds every element the scripts fill, so a click is always seen landing."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -120,6 +121,18 @@ def test_the_report_loading_line_runs_home_instead_of_collapsing():
     css = (ASSETS / "css" / "30-explore.css").read_text(encoding="utf-8")
     assert ".report.is-loading::before { opacity: 1; animation: progress" in css
     assert ".has-report-progress .report.is-loading::before { animation: none; }" in css
+
+
+def test_the_exit_waits_for_the_lighting_pass_to_cross_the_city():
+    """When the report is ready, the renderer books the exit for the end of the lighting pass in progress and tells
+    the page when it begins; a skip starts it at once, and the page never waits longer than one pass."""
+    script = (ASSETS / "js" / "40-generate.js").read_text(encoding="utf-8")
+    assert "end = SCAN_FROM + Math.max(1, Math.ceil((e - SCAN_FROM) / SCAN_MS)) * SCAN_MS" in script
+    assert 'scope.postMessage({ type: "exiting" })' in script and 'event.data.type === "exiting"' in script
+    assert 'send({ type: "finish", now: skip })' in script and 'send({ type: "finish", now: true })' in script
+    scan = int(re.search(r"SCAN_MS = (\d+)", script).group(1))
+    wait = int(re.search(r"EXIT_WAIT_MS = (\d+)", script).group(1))
+    assert wait > scan
 
 
 def test_the_generate_sequence_keeps_its_exits():
