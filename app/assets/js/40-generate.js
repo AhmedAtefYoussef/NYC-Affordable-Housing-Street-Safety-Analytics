@@ -31,6 +31,8 @@
   var NYC = window.NYC;
   // The plain notice (reduced motion, or no canvas) only needs to be readable, not watched: PLAIN_MIN_MS.
   var MIN_MS = 5800, PLAIN_MIN_MS = 1200, OUT_MS = 2500, MAX_WAIT_MS = 15000, POLL_MS = 80, MAX_SCALE = 1.5;
+  // The longest the page waits for the renderer to begin its exit: one full lighting pass (SCAN_MS) and a margin.
+  var EXIT_WAIT_MS = 3200;
   var RELEASE_WORKER_MS = 300, RELEASE_PAGE_MS = 4300;
   // When each step of the work is named, in ms from the start (matched to the phases drawn below).
   var STEP_AT = [0, 900, 3000, 4500, 5400];
@@ -42,7 +44,8 @@
        data     { n, x, y, aspect, tone, size, rank }   the buildings, once (x and y from 0 to 1)
        open     { canvas, particles, width, height, scale, lite }   a new overlay: start the sequence (particles: the
                 canvas for the lights on the graphics processor, laid over canvas; null to draw them in 2D)
-       finish   the report is ready and in place: collapse and burst
+       finish   the report is ready and in place: collapse and burst, once the lighting pass in progress has
+                crossed the city ({ now: true } to start at once); it posts { type: "exiting" } when the exit begins
        close    stop drawing
        stats    reply with the frame times ({ type: "stats" }) */
   function reportRenderer(scope) {
@@ -53,12 +56,13 @@
     var VEIL_MS = 600, GATHER_FROM = 700, BOROUGH_STEP = 400, GATHER_EACH = 1600, GATHER_SPREAD = 400, BOW = 0.3;
     var WEAVE_FROM = 4300, WEAVE_MS = 1000, SCAN_FROM = 5300, SCAN_MS = 2400, FLARE_MS = 600, PULSE_MS = 700;
     // The exit, collapse and shockwave (ms after the report is ready):
-    //   inhale    to IMPLODE_FROM             the city draws a breath: it swells by INHALE and brightens
+    //   draw back to IMPLODE_FROM             the city draws back a little (DRAW_BACK of its size) and brightens; every
+    //                                         movement of the exit leads away from the reader, never toward
     //   collapse  to BURST_FROM               every light spirals into the centre, faster and faster, streaked by its speed
     //   burst     to BURST_FROM + BURST_MS    the light gathered there blazes as a star (STAR_PX), then flies back out,
     //                                         each building on its own ray; a shockwave ring runs ahead over SHOCK_MS
     //                                         and cuts the dark open onto the report
-    var IMPLODE_FROM = 380, BURST_FROM = 1150, BURST_MS = 1300, SHOCK_MS = 1100, INHALE = 0.035, SPIRAL = 0.9;
+    var IMPLODE_FROM = 380, BURST_FROM = 1150, BURST_MS = 1300, SHOCK_MS = 1100, DRAW_BACK = 0.035, SPIRAL = 0.9;
     var STAR_PX = 150, EXIT_STREAK_PX = 150, SHOCK_EDGE_PX = 70, EXIT_MS = BURST_FROM + BURST_MS;
     var frame = self.requestAnimationFrame ? function (fn) { return self.requestAnimationFrame(fn); }
                                            : function (fn) { return setTimeout(function () { fn(performance.now()); }, 16); };
@@ -70,6 +74,7 @@
     // gl: the lights on the graphics processor (Light.Particles) on a second canvas over this one; context then draws
     // only the ground, the threads, the sweep and the shockwave. Without WebGL2 the lights are drawn here in 2D.
     var gl = null, exitReady = false, reachMax = 0, at = [0, 0];
+    var told = false;    // the page has been told the exit has begun (see "finish")
 
     function clamp01(t) { return t < 0 ? 0 : t > 1 ? 1 : t; }
     function easeInOut(t) { return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2; }
@@ -231,12 +236,14 @@
       if (governor.tick(now)) { applyScale(); }
       var e = now - startedAt, dt = now - prevNow, blur = (gl || !lite) && governor.level < 3 && !fresh && dt > 0 && dt < 100;
       prevNow = now; fresh = false;
-      var since = diveAt ? now - diveAt : 0, exiting = diveAt > 0;
+      // The exit is booked for diveAt (the end of the lighting pass); until then the city keeps lighting up.
+      var exiting = diveAt > 0 && now >= diveAt, since = exiting ? now - diveAt : 0;
       if (exiting && !exitReady) { prepareExit(e - since); }
+      if (exiting && !told) { told = true; scope.postMessage({ type: "exiting" }); }
       var veil = clamp01(e / VEIL_MS), scanning = e > SCAN_FROM && !exiting, scan = ((e - SCAN_FROM) % SCAN_MS) / SCAN_MS;
       var scanY = cityTop + scan * (cityBottom - cityTop), formed = !exiting && e >= SCAN_FROM, i, p, vx, vy;
       // The exit's curves.
-      var breath = exiting ? easeInOut(clamp01(since / IMPLODE_FROM)) : 0, swell = 1 + INHALE * breath;
+      var breath = exiting ? easeInOut(clamp01(since / IMPLODE_FROM)) : 0, swell = 1 - DRAW_BACK * breath;
       var burst = exiting ? clamp01((since - BURST_FROM) / BURST_MS) : 0, bursting = exiting && since >= BURST_FROM;
       var shock = bursting ? Light.easeOutCubic(clamp01((since - BURST_FROM) / SHOCK_MS)) : 0;
       var gather = exiting && since < BURST_FROM ? Math.pow(clamp01((since - IMPLODE_FROM - 300) / (BURST_FROM - IMPLODE_FROM - 300)), 2) : 0;
@@ -273,7 +280,7 @@
         context.globalAlpha = front; context.lineWidth = 2;
         context.beginPath(); context.arc(cx, cy, at0, 0, 6.283); context.stroke();
       }
-      // The threads: woven from the south; in the exit they swell with the city's breath and are gone as it collapses.
+      // The threads: woven from the south; in the exit they draw back with the city and are gone as it collapses.
       var threads = exiting ? 0.22 * (1 + 1.5 * breath) * (1 - clamp01((since - IMPLODE_FROM) / 350)) : 0.22;
       if (e > WEAVE_FROM && links.length && threads > 0.01 && (gl || !formed)) {
         var shown = exiting ? links.length : Math.floor(links.length * Light.easeInOutCubic(clamp01((e - WEAVE_FROM) / WEAVE_MS)));
@@ -296,7 +303,7 @@
       context.globalCompositeOperation = "source-over";
       rings = rings.filter(function (ring) {
         var age = (now - ring.born) / 1400;
-        if (age >= 1 || exiting) { return false; }
+        if (age >= 1) { return false; }             // a ring still pulsing when the exit begins fades out on its own
         context.globalAlpha = 1;
         context.strokeStyle = "rgba(255,143,120," + (0.7 * (1 - age)).toFixed(3) + ")";
         context.lineWidth = 1.2;
@@ -382,10 +389,19 @@
           context = canvas.getContext("2d");
           build();
           applyScale();
-          rings = []; diveAt = 0; fresh = true; exitReady = false; startedAt = prevNow = performance.now();
+          rings = []; diveAt = 0; fresh = true; exitReady = false; told = false; startedAt = prevNow = performance.now();
           raf = frame(draw);
           break;
-        case "finish": if (canvas && !diveAt) { diveAt = performance.now(); if (!raf) { raf = frame(draw); } } break;
+        case "finish":
+          // The report is ready. The exit begins when the lighting pass in progress has crossed the whole city, so
+          // every part of New York has lit up first (at once if the reader skipped, or the city has not formed yet).
+          if (canvas && (!diveAt || (message.now && performance.now() < diveAt))) {
+            var nowAt = performance.now(), e = nowAt - startedAt, end = e;
+            if (!message.now && e >= SCAN_FROM) { end = SCAN_FROM + Math.max(1, Math.ceil((e - SCAN_FROM) / SCAN_MS)) * SCAN_MS; }
+            diveAt = startedAt + end;
+            if (!raf) { raf = frame(draw); }
+          }
+          break;
         case "close": if (raf) { cancel(raf); raf = 0; } canvas = context = points = city = gl = null; break;
         case "stats": scope.postMessage({ type: "stats", stats: governor ? governor.stats() : null }); break;
       }
@@ -398,7 +414,12 @@
   function canUseWorker() {
     return !broken && !!(window.HTMLCanvasElement && HTMLCanvasElement.prototype.transferControlToOffscreen && window.Worker && window.Blob && window.URL && NYC.lightKit);
   }
-  function heard(event) { if (event.data && event.data.type === "stats" && NYC.reportStats) { NYC.reportStats("report", event.data.stats); } }
+  var onExiting = null;    // what the page does when the renderer's exit begins (maybeFinish)
+  function heard(event) {
+    if (!event.data) { return; }
+    if (event.data.type === "stats" && NYC.reportStats) { NYC.reportStats("report", event.data.stats); }
+    if (event.data.type === "exiting" && onExiting) { var go = onExiting; onExiting = null; go(); }
+  }
   function onPage() {
     var local = { postMessage: function (message) { heard({ data: message }); } };
     NYC.lightKit(local);
@@ -511,6 +532,7 @@
   }
 
   function maybeFinish() {
+    if (finishing && skip && onExiting && send) { send({ type: "finish", now: true }); return; }
     if (!overlay || !done || finishing || (!skip && performance.now() - startedAt < (drawing ? MIN_MS : PLAIN_MIN_MS))) { return; }
     finishing = true;
     window.clearInterval(poll);
@@ -523,20 +545,29 @@
     document.querySelectorAll("#report-tiles .tile, #report-tiles .metric").forEach(function (element, index) { element.style.setProperty("--i", index % 8); });
     // The report gets its own layer now, under cover, so the hand-off below starts on a layer already built.
     document.body.classList.add("gen-ready-layer");
-    // 2. Two frames later the city collapses and bursts, and the report zooms out into place behind the shockwave.
+    // 2. Two frames later the renderer is told the report is ready. It lets the lighting pass in progress finish
+    //    crossing the city, then the city collapses and bursts, and the report zooms out into place behind the
+    //    shockwave; the page starts its own part of that (the panel, the report's zoom, the timers) when the renderer
+    //    says the exit has begun, or after EXIT_WAIT_MS whatever happens.
     window.requestAnimationFrame(function () {
       window.requestAnimationFrame(function () {
-        if (send && drawing) { send({ type: "finish" }); }
-        leaving.classList.add("is-out");
-        document.body.setAttribute("data-report", "fresh");
-        window.setTimeout(function () { document.body.removeAttribute("data-report"); document.body.classList.remove("gen-ready-layer"); }, 4300);
-        window.setTimeout(function () {
-          if (send && drawing) { send({ type: "close" }); }
-          leaving.remove();
-          if (overlay === leaving) { overlay = null; }
-        }, reducedNow ? 0 : OUT_MS + 40);
+        if (send && drawing) {
+          var waited = window.setTimeout(function () { if (onExiting) { var go = onExiting; onExiting = null; go(); } }, EXIT_WAIT_MS);
+          onExiting = function () { window.clearTimeout(waited); exit(); };
+          send({ type: "finish", now: skip });
+        } else { exit(); }
       });
     });
+    function exit() {
+      leaving.classList.add("is-out");
+      document.body.setAttribute("data-report", "fresh");
+      window.setTimeout(function () { document.body.removeAttribute("data-report"); document.body.classList.remove("gen-ready-layer"); }, 4300);
+      window.setTimeout(function () {
+        if (send && drawing) { send({ type: "close" }); }
+        leaving.remove();
+        if (overlay === leaving) { overlay = null; }
+      }, reducedNow ? 0 : OUT_MS + 40);
+    }
   }
 
   /* The reader asked: from the button, or Enter in the search box. */
