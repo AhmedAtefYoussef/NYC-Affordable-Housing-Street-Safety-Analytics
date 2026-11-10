@@ -142,12 +142,17 @@
 
 /* ---------- report ---------- */
 .report { position: relative; margin-top: var(--space-9); }
+/* The loading line: a gold bar whose gradient brightens toward its leading end, so a head of light leads it as it
+   grows, with a soft glow beneath. 43-report-progress.js runs its growth and its finish (it runs home to the full
+   width and fades, rather than collapsing when the report arrives early); the CSS growth is for a page without it. */
 .report::before {
-  content: ""; position: sticky; top: var(--masthead-height, 4.5rem); z-index: 20; display: block; height: 3px; margin-bottom: -3px;
-  background: var(--color-primary); box-shadow: 0 0 16px var(--color-primary); transform-origin: left center; transform: scaleX(0);
-  opacity: 0; transition: opacity var(--duration-base) ease-out; pointer-events: none;
+  content: ""; position: sticky; top: var(--masthead-height, 4.5rem); z-index: 20; display: block; height: 3px; margin-bottom: -3px; border-radius: 3px;
+  background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0) 0%, rgb(var(--gold-rgb) / 0.55) 30%, var(--color-primary) 78%, var(--color-accent-strong) 96%, var(--color-ink) 100%);
+  box-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.75), 0 0 2px rgb(var(--gold-rgb) / 0.9);
+  transform-origin: left center; transform: scaleX(0); opacity: 0; transition: opacity var(--duration-base) ease-out; pointer-events: none;
 }
 .report.is-loading::before { opacity: 1; animation: progress 4s var(--ease-out) forwards; }
+.has-report-progress .report.is-loading::before { animation: none; }
 .report-header, .figures, .group { transition: opacity var(--duration-base) ease-out; }
 .report.is-loading .report-header, .report.is-loading .figures, .report.is-loading .group { opacity: 0.45; pointer-events: none; }
 .report-header { display: grid; gap: var(--space-4); max-width: 62rem; }

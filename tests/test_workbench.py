@@ -111,6 +111,17 @@ def test_the_generate_button_light_never_snaps():
     assert ".generate:disabled::before { animation-play-state: paused; opacity: 0; }" in css
 
 
+def test_the_report_loading_line_runs_home_instead_of_collapsing():
+    """The script grows the line and, when the report arrives, runs it to full width and fades it; without the script
+    the CSS growth stays."""
+    script = (ASSETS / "js" / "43-report-progress.js").read_text(encoding="utf-8")
+    assert 'classList.add("has-report-progress")' in script and 'pseudoElement = "::before"' in script
+    assert 'scaleX(1)' in script and "NYC.reducedMotion()" in script
+    css = (ASSETS / "css" / "30-explore.css").read_text(encoding="utf-8")
+    assert ".report.is-loading::before { opacity: 1; animation: progress" in css
+    assert ".has-report-progress .report.is-loading::before { animation: none; }" in css
+
+
 def test_the_generate_sequence_keeps_its_exits():
     script = (ASSETS / "js" / "40-generate.js").read_text(encoding="utf-8")
     assert "NYC.reducedMotion()" in script and '"Escape"' in script and "MAX_WAIT_MS" in script
