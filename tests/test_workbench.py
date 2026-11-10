@@ -99,6 +99,29 @@ def test_both_renderers_draw_their_lights_on_the_graphics_processor_with_a_2d_fa
     assert "[target, overlayTarget]" in stage and "[target, lightsTarget]" in report
 
 
+def test_the_generate_button_light_never_snaps():
+    """The stale pulse is run by script (it fades in and glides back to rest); without the script the CSS pulse stays.
+    The idle light pauses and fades while a report is built instead of vanishing mid-sweep."""
+    script = (ASSETS / "js" / "42-generate-light.js").read_text(encoding="utf-8")
+    assert 'classList.add("has-generate-light")' in script and "NYC.reducedMotion()" in script
+    assert 'closest("#reset")' in script and "recharge" in script
+    css = (ASSETS / "css" / "30-explore.css").read_text(encoding="utf-8")
+    assert ".has-generate-light .generate.is-stale { animation: none; }" in css
+    assert ".generate.is-stale { animation: stale-pulse" in css
+    assert ".generate:disabled::before { animation-play-state: paused; opacity: 0; }" in css
+
+
+def test_the_report_loading_line_runs_home_instead_of_collapsing():
+    """The script grows the line and, when the report arrives, runs it to full width and fades it; without the script
+    the CSS growth stays."""
+    script = (ASSETS / "js" / "43-report-progress.js").read_text(encoding="utf-8")
+    assert 'classList.add("has-report-progress")' in script and 'pseudoElement = "::before"' in script
+    assert 'scaleX(1)' in script and "NYC.reducedMotion()" in script
+    css = (ASSETS / "css" / "30-explore.css").read_text(encoding="utf-8")
+    assert ".report.is-loading::before { opacity: 1; animation: progress" in css
+    assert ".has-report-progress .report.is-loading::before { animation: none; }" in css
+
+
 def test_the_generate_sequence_keeps_its_exits():
     script = (ASSETS / "js" / "40-generate.js").read_text(encoding="utf-8")
     assert "NYC.reducedMotion()" in script and '"Escape"' in script and "MAX_WAIT_MS" in script
